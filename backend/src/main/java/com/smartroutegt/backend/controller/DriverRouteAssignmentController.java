@@ -8,6 +8,7 @@ import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PathVariable;
 
 @RestController
 @RequestMapping("/api/assignments")
@@ -22,5 +23,9 @@ public class DriverRouteAssignmentController {
     @GetMapping
     public List<DriverRouteAssignment> obtenerAsignaciones() {
         return driverRouteAssignmentRepository.findAll();
+    }
+    @GetMapping("/driver/{driverId}")
+    public List<DriverRouteAssignment> obtenerAsignacionesPorDriver(@PathVariable Long driverId) {
+        return driverRouteAssignmentRepository.findByDriverId(driverId);
     }
 }
