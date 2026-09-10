@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.http.ResponseEntity;
 
 @RestController
@@ -43,6 +44,11 @@ public class DriverRouteAssignmentController {
     @GetMapping
     public List<DriverRouteAssignment> obtenerAsignaciones() {
         return driverRouteAssignmentRepository.findAll();
+    }
+
+    @GetMapping("/driver/{driverId}")
+    public List<DriverRouteAssignment> obtenerAsignacionesPorDriver(@PathVariable Long driverId) {
+        return driverRouteAssignmentRepository.findByDriverId(driverId);
     }
 
     @PostMapping
