@@ -2,6 +2,7 @@ package com.smartroutegt.backend.controller;
 
 import com.smartroutegt.backend.entity.Driver;
 import com.smartroutegt.backend.repository.DriverRepository;
+import com.smartroutegt.backend.service.BubbleSortService;
 
 import java.util.List;
 
@@ -20,15 +21,26 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 public class DriverController {
 
     private final DriverRepository driverRepository;
+    private final BubbleSortService bubbleSortService;
 
-    public DriverController(DriverRepository driverRepository) {
-        this.driverRepository = driverRepository;
-    }
+    public DriverController(
+        DriverRepository driverRepository,
+        BubbleSortService bubbleSortService) {
+
+    this.driverRepository = driverRepository;
+    this.bubbleSortService = bubbleSortService;
+}
 
     @GetMapping
     public List<Driver> obtenerPilotos() {
         return driverRepository.findAll();
     }
+
+    @GetMapping("/ordenados-por-sanciones")
+public List<Driver> obtenerPilotosOrdenadosPorSanciones() {
+    List<Driver> drivers = driverRepository.findAll();
+    return bubbleSortService.ordenarPorSancionesConfirmadas(drivers);
+}
 
     @PostMapping
     public Driver crearPiloto(@RequestBody Driver driver) {
