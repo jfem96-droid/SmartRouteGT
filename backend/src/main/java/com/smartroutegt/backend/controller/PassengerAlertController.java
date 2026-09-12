@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/passenger-alerts")
@@ -17,16 +18,18 @@ public class PassengerAlertController {
     public PassengerAlertController(PassengerAlertRepository passengerAlertRepository) {
         this.passengerAlertRepository = passengerAlertRepository;
     }
+@PostMapping
+public ResponseEntity<PassengerAlert> crearAlerta(
+        @RequestBody PassengerAlert passengerAlert) {
 
-    @PostMapping
-    public ResponseEntity<PassengerAlert> crearAlerta(
-            @RequestBody PassengerAlert passengerAlert) {
+    passengerAlert.setEstado(PassengerAlert.Estado.PENDING);
+    passengerAlert.setFechaHora(LocalDateTime.now());
 
-        PassengerAlert alertaGuardada =
-                passengerAlertRepository.save(passengerAlert);
+    PassengerAlert alertaGuardada =
+            passengerAlertRepository.save(passengerAlert);
 
-        return ResponseEntity.ok(alertaGuardada);
-    }
+    return ResponseEntity.ok(alertaGuardada);
+}
 
     @GetMapping
     public List<PassengerAlert> listarAlertas() {
