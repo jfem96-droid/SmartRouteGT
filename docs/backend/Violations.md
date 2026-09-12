@@ -2,24 +2,46 @@
 
 ## 1. Objetivo
 
-El módulo de infracciones permite trabajar con la información de sanciones asociadas a los pilotos del sistema SmartRoute GT.
+El módulo de infracciones permite registrar y consultar infracciones detectadas durante los viajes de SmartRoute GT.
 
-Actualmente, el backend cuenta con información de sanciones confirmadas asociada al conductor y una funcionalidad para ordenar los pilotos según la cantidad de sanciones.
+Una infracción queda relacionada con:
 
----
+- piloto
+- bus
+- viaje
 
-## 2. Funcionamiento
+## 2. Datos registrados
 
-El sistema utiliza el campo de sanciones confirmadas del conductor para determinar la cantidad de sanciones asociadas a cada piloto.
+Cada infracción contiene:
 
-La información puede utilizarse para ordenar los conductores y facilitar la identificación de aquellos que tienen mayor cantidad de sanciones.
+- id
+- driver
+- bus
+- trip
+- tipo
+- descripcion
+- velocidadRegistrada
+- limitePermitido
+- fechaHora
+- estado
 
----
+## 3. Estados
 
-## 3. Funcionalidad implementada
+Actualmente una infracción puede tener los estados:
 
-Actualmente existe la consulta:
+- PENDING
+- CONFIRMED
+- REJECTED
+
+Toda infracción nueva inicia automáticamente como:
+
+PENDING
+
+Esto significa que todavía debe ser revisada antes de convertirse en una sanción confirmada.
+
+## 4. Endpoints
+
+### Crear infracción
 
 ```http
-GET /api/drivers/ordenados-por-sanciones
-
+POST /api/violations

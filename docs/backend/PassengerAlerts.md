@@ -2,28 +2,47 @@
 
 ## 1. Objetivo
 
-El módulo de alertas de pasajeros está orientado a proporcionar información útil para los usuarios del sistema de transporte.
+El módulo de alertas de pasajeros permite registrar y consultar alertas generadas por los usuarios del sistema SmartRoute GT.
 
-Actualmente el backend cuenta con funcionalidades relacionadas con la ubicación de buses y la búsqueda del bus más cercano, las cuales sirven como base para futuras alertas dirigidas a pasajeros.
+Las alertas pueden utilizarse para reportar emergencias, problemas con conductores, inconvenientes con rutas u otras situaciones.
 
----
+## 2. Tipos de alerta
 
-## 2. Funcionamiento
+Actualmente se manejan los siguientes tipos:
 
-El sistema puede consultar la ubicación más reciente de los buses y determinar cuál se encuentra más cerca de una posición determinada.
+- SOS
+- DRIVER_BEHAVIOR
+- ROUTE_PROBLEM
+- OTHER
 
-Esta información puede utilizarse posteriormente para implementar funcionalidades como:
+## 3. Estados
 
-- Mostrar buses cercanos.
-- Informar al pasajero sobre la ubicación de un bus.
-- Generar alertas relacionadas con la proximidad de un bus.
+Toda alerta nueva inicia automáticamente con estado:
 
----
+PENDING
 
-## 3. Funcionalidad relacionada implementada
+Posteriormente podrá pasar a:
 
-Actualmente existe la búsqueda del bus más cercano mediante:
+- REVIEWED
+- RESOLVED
+
+## 4. Datos almacenados
+
+Cada alerta contiene:
+
+- id
+- tipo
+- descripcion
+- latitud
+- longitud
+- fechaHora
+- estado
+
+La fecha y hora se generan automáticamente al crear la alerta.
+
+## 5. Endpoints
+
+### Crear alerta
 
 ```http
-GET /api/algorithms/nearest-bus
-
+POST /api/passenger-alerts
