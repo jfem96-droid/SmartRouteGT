@@ -13,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.smartroutegt.mobile.ui.screens.RoleSelectionScreen
 import com.smartroutegt.mobile.ui.screens.PassengerHomeScreen
+import com.smartroutegt.mobile.ui.screens.RouteSearchScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,7 +52,15 @@ class MainActivity : ComponentActivity() {
                     }
 
                     "passenger" -> {
-                        PassengerHomeScreen()
+                        PassengerHomeScreen(
+                            onSearchRoute = {
+                                currentScreen = "routeSearch"
+                            }
+                        )
+                    }
+
+                    "routeSearch" -> {
+                        RouteSearchScreen()
                     }
                 }
             }

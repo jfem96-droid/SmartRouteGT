@@ -13,7 +13,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun PassengerHomeScreen() {
+fun PassengerHomeScreen(
+    onSearchRoute: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -27,7 +29,7 @@ fun PassengerHomeScreen() {
         )
 
         Button(
-            onClick = { },
+            onClick = onSearchRoute,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 24.dp)
