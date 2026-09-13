@@ -19,7 +19,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun LoginScreen() {
+fun LoginScreen(
+    onLoginClick: () -> Unit
+) {
 
     var email by remember {
         mutableStateOf("")
@@ -68,7 +70,7 @@ fun LoginScreen() {
         )
 
         Button(
-            onClick = { },
+            onClick = onLoginClick,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 24.dp)

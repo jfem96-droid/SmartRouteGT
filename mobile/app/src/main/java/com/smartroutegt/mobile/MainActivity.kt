@@ -11,6 +11,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.smartroutegt.mobile.ui.screens.RoleSelectionScreen
+import com.smartroutegt.mobile.ui.screens.PassengerHomeScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -18,18 +20,39 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SmartRouteGTTheme {
-                var showLogin by remember {
-                    mutableStateOf(false)
+                var currentScreen by remember {
+                    mutableStateOf("welcome")
                 }
 
-                if (showLogin) {
-                    LoginScreen()
-                } else {
-                    WelcomeScreen(
-                        onContinue = {
-                            showLogin = true
-                        }
-                    )
+                when (currentScreen) {
+                    "welcome" -> {
+                        WelcomeScreen(
+                            onContinue = {
+                                currentScreen = "login"
+                            }
+                        )
+                    }
+
+                    "login" -> {
+                        LoginScreen(
+                            onLoginClick = {
+                                currentScreen = "role"
+                            }
+                        )
+                    }
+
+                    "role" -> {
+                        RoleSelectionScreen(
+                            onPassengerSelected = {
+                                currentScreen = "passenger"
+                            },
+                            onDriverSelected = { }
+                        )
+                    }
+
+                    "passenger" -> {
+                        PassengerHomeScreen()
+                    }
                 }
             }
         }
