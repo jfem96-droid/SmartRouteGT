@@ -1,9 +1,12 @@
 package com.smartroutegt.backend.service;
 
+import com.smartroutegt.backend.entity.AuditLog;
 import com.smartroutegt.backend.entity.Driver;
 import com.smartroutegt.backend.entity.Violation;
+import com.smartroutegt.backend.repository.AuditLogRepository;
 import com.smartroutegt.backend.repository.DriverRepository;
 import com.smartroutegt.backend.repository.ViolationRepository;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,12 +17,16 @@ public class ViolationService {
 
     private final ViolationRepository violationRepository;
     private final DriverRepository driverRepository;
+    private final AuditLogRepository auditLogRepository;
 
     public ViolationService(
             ViolationRepository violationRepository,
-            DriverRepository driverRepository) {
+            DriverRepository driverRepository,
+            AuditLogRepository auditLogRepository) {
+
         this.violationRepository = violationRepository;
         this.driverRepository = driverRepository;
+        this.auditLogRepository = auditLogRepository;
     }
 
     @Transactional
@@ -44,10 +51,28 @@ public class ViolationService {
         driver.setSancionesConfirmadas(nuevasSanciones);
 
         if (nuevasSanciones >= LIMITE_SANCIONES) {
+
             driver.setActivo(false);
+
+            auditLogRepository.save(new AuditLog(
+                    "DRIVER_SUSPENDED",
+                    "DRIVER",
+                    driver.getId(),
+                    "SYSTEM",
+                    "Piloto suspendido automáticamente al alcanzar "
+                            + nuevasSanciones
+                            + " sanciones confirmadas"));
         }
 
         driverRepository.save(driver);
+
+        auditLogRepository.save(new AuditLog(
+                "VIOLATION_CONFIRMED",
+                "VIOLATION",
+                violation.getId(),
+                "SYSTEM",
+                "Infracción confirmada para el piloto "
+                        + driver.getNombre()));
 
         return violationRepository.save(violation);
     }
@@ -65,6 +90,13 @@ public class ViolationService {
         }
 
         violation.setEstado(Violation.Estado.REJECTED);
+
+        auditLogRepository.save(new AuditLog(
+                "VIOLATION_REJECTED",
+                "VIOLATION",
+                violation.getId(),
+                "SYSTEM",
+                "Infracción rechazada"));
 
         return violationRepository.save(violation);
     }

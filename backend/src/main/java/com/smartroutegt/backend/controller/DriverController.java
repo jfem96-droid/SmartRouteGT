@@ -2,7 +2,10 @@ package com.smartroutegt.backend.controller;
 
 import com.smartroutegt.backend.entity.Driver;
 import com.smartroutegt.backend.repository.DriverRepository;
+import com.smartroutegt.backend.entity.AuditLog;
+import com.smartroutegt.backend.repository.AuditLogRepository;
 import com.smartroutegt.backend.service.BubbleSortService;
+
 
 import java.util.List;
 
@@ -22,13 +25,16 @@ public class DriverController {
 
     private final DriverRepository driverRepository;
     private final BubbleSortService bubbleSortService;
+    private final AuditLogRepository auditLogRepository;
 
-    public DriverController(
+  public DriverController(
         DriverRepository driverRepository,
-        BubbleSortService bubbleSortService) {
+        BubbleSortService bubbleSortService,
+        AuditLogRepository auditLogRepository) {
 
     this.driverRepository = driverRepository;
     this.bubbleSortService = bubbleSortService;
+    this.auditLogRepository = auditLogRepository;
 }
 
     @GetMapping
@@ -91,7 +97,9 @@ public ResponseEntity<?> desactivarPiloto(@PathVariable Long id) {
     return ResponseEntity.ok("Piloto desactivado correctamente");
 }
 @PutMapping("/{id}/activar")
-public ResponseEntity<?> activarPiloto(@PathVariable Long id) {
+public ResponseEntity<?> activarPiloto(
+        @PathVariable Long id,
+        @RequestBody ReactivationRequest request) {
 
     Driver driver = driverRepository.findById(id).orElse(null);
 
@@ -99,9 +107,44 @@ public ResponseEntity<?> activarPiloto(@PathVariable Long id) {
         return ResponseEntity.notFound().build();
     }
 
-    driver.setActivo(true);
-    driverRepository.save(driver);
+    if (driver.isActivo()) {
+        return ResponseEntity.badRequest()
+                .body("El piloto ya se encuentra activo");
+    }
 
-    return ResponseEntity.ok("Piloto activado correctamente");
+    if (request.getJustificacion() == null ||
+            request.getJustificacion().trim().isEmpty()) {
+
+        return ResponseEntity.badRequest()
+                .body("La justificación es obligatoria para reactivar al piloto");
+    }
+
+    driver.setActivo(true);
+
+driverRepository.save(driver);
+
+auditLogRepository.save(new AuditLog(
+        "DRIVER_REACTIVATED",
+        "DRIVER",
+        driver.getId(),
+        "ADMIN",
+        "Piloto reactivado. Justificación: "
+                + request.getJustificacion()));
+
+return ResponseEntity.ok(
+        "Piloto reactivado correctamente. Justificación: "
+                + request.getJustificacion());
+}
+public static class ReactivationRequest {
+
+    private String justificacion;
+
+    public String getJustificacion() {
+        return justificacion;
+    }
+
+    public void setJustificacion(String justificacion) {
+        this.justificacion = justificacion;
+    }
 }
 }
