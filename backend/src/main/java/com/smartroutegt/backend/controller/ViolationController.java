@@ -8,6 +8,7 @@ import com.smartroutegt.backend.repository.BusRepository;
 import com.smartroutegt.backend.repository.DriverRepository;
 import com.smartroutegt.backend.repository.TripRepository;
 import com.smartroutegt.backend.repository.ViolationRepository;
+import com.smartroutegt.backend.service.ViolationService;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,21 +19,26 @@ import java.util.List;
 @RequestMapping("/api/violations")
 public class ViolationController {
 
+    
     private final ViolationRepository violationRepository;
     private final DriverRepository driverRepository;
     private final BusRepository busRepository;
     private final TripRepository tripRepository;
+    private final ViolationService violationService;
 
     public ViolationController(
             ViolationRepository violationRepository,
             DriverRepository driverRepository,
             BusRepository busRepository,
+            ViolationService violationService,
             TripRepository tripRepository) {
 
         this.violationRepository = violationRepository;
         this.driverRepository = driverRepository;
         this.busRepository = busRepository;
         this.tripRepository = tripRepository;
+        this.violationService = violationService;
+        
     }
 
     @PostMapping
@@ -87,6 +93,34 @@ public class ViolationController {
         return violationRepository.findAll();
     }
 
+    @PutMapping("/{id}/confirm")
+public ResponseEntity<?> confirmarInfraccion(@PathVariable Long id) {
+    try {
+        Violation violation = violationService.confirmarInfraccion(id);
+        return ResponseEntity.ok(violation);
+
+    } catch (IllegalArgumentException e) {
+        return ResponseEntity.badRequest().body(e.getMessage());
+
+    } catch (IllegalStateException e) {
+        return ResponseEntity.badRequest().body(e.getMessage());
+    }
+}
+
+@PutMapping("/{id}/reject")
+public ResponseEntity<?> rechazarInfraccion(@PathVariable Long id) {
+    try {
+        Violation violation = violationService.rechazarInfraccion(id);
+        return ResponseEntity.ok(violation);
+
+    } catch (IllegalArgumentException e) {
+        return ResponseEntity.badRequest().body(e.getMessage());
+
+    } catch (IllegalStateException e) {
+        return ResponseEntity.badRequest().body(e.getMessage());
+    }
+}
+
     @GetMapping("/{id}")
     public ResponseEntity<?> obtenerInfraccionPorId(
             @PathVariable Long id) {
@@ -99,6 +133,8 @@ public class ViolationController {
         }
 
         return ResponseEntity.ok(violation);
+
+        
     }
 
     public static class ViolationRequest {
