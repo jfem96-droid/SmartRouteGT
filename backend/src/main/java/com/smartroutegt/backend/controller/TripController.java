@@ -75,6 +75,15 @@ public class TripController {
 
         return ResponseEntity.ok(viajeGuardado);
     }
+    @GetMapping("/driver/{driverId}/active")
+public ResponseEntity<?> obtenerViajeActivoPorPiloto(
+        @PathVariable Long driverId) {
+
+    return tripRepository.findByDriverIdAndActivoTrue(driverId)
+            .<ResponseEntity<?>>map(ResponseEntity::ok)
+            .orElseGet(() ->
+                    ResponseEntity.notFound().build());
+}
     @PutMapping("/{id}/finish")
 public ResponseEntity<?> finalizarViaje(@PathVariable Long id) {
 
