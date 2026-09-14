@@ -84,29 +84,57 @@ class MainActivity : ComponentActivity() {
                     }
 
                     "routeSearch" -> {
-                        RouteSearchScreen()
+                        RouteSearchScreen(
+                            onBack = {
+                                currentScreen = "passenger"
+                            }
+                        )
                     }
 
                     "nearbyBuses" -> {
-                        NearbyBusesScreen()
+                        NearbyBusesScreen(
+                            onBack = {
+                                currentScreen = "passenger"
+                            }
+                        )
                     }
 
                     "busInfo" -> {
-                        BusInfoScreen()
+                        BusInfoScreen(
+                            onBack = {
+                                currentScreen = "passenger"
+                            }
+                        )
                     }
 
                     "eta" -> {
-                        EtaScreen()
+                        EtaScreen(
+                            onBack = {
+                                currentScreen = "passenger"
+                            }
+                        )
                     }
 
                     "sos" -> {
-                        SosScreen()
+                        SosScreen(
+                            onBack = {
+                                currentScreen = "passenger"
+                            }
+                        )
                     }
                     "driverReport" -> {
-                        DriverReportScreen()
+                        DriverReportScreen(
+                            onBack = {
+                                currentScreen = "passenger"
+                            }
+                        )
                     }
                     "routeReport" -> {
-                        RouteReportScreen()
+                        RouteReportScreen(
+                            onBack = {
+                                currentScreen = "passenger"
+                            }
+                        )
                     }
                 }
             }

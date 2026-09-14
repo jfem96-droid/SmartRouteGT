@@ -10,9 +10,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.OutlinedButton
 
 @Composable
-fun SosScreen() {
+fun SosScreen(
+    onBack: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -20,8 +23,15 @@ fun SosScreen() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
+        OutlinedButton(
+            onClick = onBack
+        ) {
+            Text(text = "← Volver al menú")
+        }
+
         Text(
-            text = "SOS"
+            text = "SOS",
+            modifier = Modifier.padding(top = 16.dp)
         )
 
         Text(

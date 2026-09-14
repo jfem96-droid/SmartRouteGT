@@ -14,9 +14,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.OutlinedButton
+
 
 @Composable
-fun RouteSearchScreen() {
+fun RouteSearchScreen(
+    onBack: () -> Unit
+) {
 
     var origin by remember {
         mutableStateOf("")
@@ -32,8 +36,15 @@ fun RouteSearchScreen() {
             .padding(24.dp)
     ) {
 
+        OutlinedButton(
+            onClick = onBack
+        ) {
+            Text(text = "← Volver al menú")
+        }
+
         Text(
-            text = "Buscar ruta"
+            text = "Buscar ruta",
+            modifier = Modifier.padding(top = 16.dp)
         )
 
         OutlinedTextField(

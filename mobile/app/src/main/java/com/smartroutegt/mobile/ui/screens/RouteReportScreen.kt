@@ -14,9 +14,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.OutlinedButton
 
 @Composable
-fun RouteReportScreen() {
+fun RouteReportScreen(
+    onBack: () -> Unit
+) {
 
     var description by remember {
         mutableStateOf("")
@@ -28,8 +31,15 @@ fun RouteReportScreen() {
             .padding(24.dp)
     ) {
 
+        OutlinedButton(
+            onClick = onBack
+        ) {
+            Text(text = "← Volver al menú")
+        }
+
         Text(
-            text = "Reportar problema de ruta"
+            text = "Reportar problema de ruta",
+            modifier = Modifier.padding(top = 16.dp)
         )
 
         OutlinedTextField(
