@@ -50,9 +50,9 @@ public class ViolationService {
 
         driver.setSancionesConfirmadas(nuevasSanciones);
 
-        if (nuevasSanciones >= LIMITE_SANCIONES) {
+       if (nuevasSanciones >= LIMITE_SANCIONES && driver.isActivo()) {
 
-            driver.setActivo(false);
+    driver.setActivo(false);
 
             auditLogRepository.save(new AuditLog(
                     "DRIVER_SUSPENDED",
