@@ -20,6 +20,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import android.content.Context
+import android.location.LocationManager
+import android.os.Build
+import android.location.Location
 
 @Composable
 fun DriverDashboardScreen() {
@@ -27,7 +31,7 @@ fun DriverDashboardScreen() {
     val rutaAsignada = "Ruta 101"
     var estadoViaje by remember { mutableStateOf("No iniciado") }
     val sancionesConfirmadas = 2
-    val velocidadActual = 0
+    var velocidadActual by remember { mutableStateOf(0f) }
     val proximaParada = "Parada Central"
     val paradas = listOf(
     "Parada Central",
@@ -38,6 +42,13 @@ fun DriverDashboardScreen() {
     val alertaActual = "Sin alertas"
 
     val context = LocalContext.current
+
+    val locationManager = remember {
+        context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+    }
+
+    var latitud by remember { mutableStateOf<Double?>(null) }
+    var longitud by remember { mutableStateOf<Double?>(null) }
 
     val permisoUbicacionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -53,6 +64,75 @@ fun DriverDashboardScreen() {
     } else {
         "Permiso denegado"
     }
+    }
+
+    fun obtenerUbicacion() {
+    val permisoPreciso = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.ACCESS_FINE_LOCATION
+    )
+
+    val permisoAproximado = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.ACCESS_COARSE_LOCATION
+    )
+
+    if (
+        permisoPreciso != PackageManager.PERMISSION_GRANTED &&
+        permisoAproximado != PackageManager.PERMISSION_GRANTED
+    ) {
+        estadoGps = "Permiso requerido"
+        return
+    }
+
+    val proveedor = when {
+        permisoPreciso == PackageManager.PERMISSION_GRANTED &&
+            locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) -> {
+            LocationManager.GPS_PROVIDER
+        }
+
+        locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) -> {
+            LocationManager.NETWORK_PROVIDER
+        }
+
+        else -> {
+            estadoGps = "Ubicación desactivada"
+            return
+        }
+    }
+
+    estadoGps = "Buscando ubicación..."
+
+    fun actualizarUbicacion(location: Location?) {
+    if (location != null) {
+        latitud = location.latitude
+        longitud = location.longitude
+
+        velocidadActual = if (location.hasSpeed()) {
+            location.speed * 3.6f
+        } else {
+            0f
+        }
+
+        estadoGps = "Ubicación disponible"
+    } else {
+        estadoGps = "Ubicación no disponible"
+    }
+}
+
+if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+    locationManager.getCurrentLocation(
+        proveedor,
+        null,
+        ContextCompat.getMainExecutor(context)
+    ) { location ->
+        actualizarUbicacion(location)
+    }
+} else {
+    actualizarUbicacion(
+        locationManager.getLastKnownLocation(proveedor)
+    )
+}
 }
 
     Column(
@@ -98,6 +178,14 @@ fun DriverDashboardScreen() {
 
         Text(text = "Estado GPS: $estadoGps")
 
+        Text(
+            text = if (latitud != null && longitud != null) {
+                 "Ubicación: $latitud, $longitud"
+            } else {
+                "Ubicación: no disponible"
+            }
+        )
+
         Spacer(modifier = Modifier.height(12.dp))
 
         Button(
@@ -116,19 +204,19 @@ fun DriverDashboardScreen() {
                     permisoPreciso == PackageManager.PERMISSION_GRANTED ||
                     permisoAproximado == PackageManager.PERMISSION_GRANTED
                 ) {
-                    estadoGps = "Permiso concedido"
+                    obtenerUbicacion()
                 } else {
                     permisoUbicacionLauncher.launch(
                         arrayOf(
                             Manifest.permission.ACCESS_FINE_LOCATION,
                             Manifest.permission.ACCESS_COARSE_LOCATION
+                    )
                 )
-            )
+            }
         }
+    ) {
+        Text(text = "Obtener ubicación")
     }
-) {
-    Text(text = "Habilitar ubicación")
-}
 
         Spacer(modifier = Modifier.height(12.dp))
 
