@@ -14,8 +14,8 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun WelcomeScreen(
-        onContinue: () -> Unit
-    ) {
+    onContinue: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
