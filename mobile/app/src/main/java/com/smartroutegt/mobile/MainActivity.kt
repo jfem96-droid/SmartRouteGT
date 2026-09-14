@@ -19,6 +19,7 @@ import com.smartroutegt.mobile.ui.screens.BusInfoScreen
 import com.smartroutegt.mobile.ui.screens.EtaScreen
 import com.smartroutegt.mobile.ui.screens.SosScreen
 import com.smartroutegt.mobile.ui.screens.DriverReportScreen
+import com.smartroutegt.mobile.ui.screens.RouteReportScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -75,6 +76,9 @@ class MainActivity : ComponentActivity() {
                             },
                             onDriverReport = {
                                 currentScreen = "driverReport"
+                            },
+                            onRouteReport = {
+                                currentScreen = "routeReport"
                             }
                         )
                     }
@@ -100,6 +104,9 @@ class MainActivity : ComponentActivity() {
                     }
                     "driverReport" -> {
                         DriverReportScreen()
+                    }
+                    "routeReport" -> {
+                        RouteReportScreen()
                     }
                 }
             }
