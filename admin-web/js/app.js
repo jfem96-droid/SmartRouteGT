@@ -16,8 +16,12 @@ fetch("http://localhost:8080/api/buses")
         return response.json();
     })
     .then(buses => {
-        console.log("Buses recibidos:", buses);
-    })
+    console.log("Buses recibidos:", buses);
+
+    const busesActivos = buses.filter(bus => bus.activa === true).length;
+
+    document.getElementById("busesActivos").textContent = busesActivos;
+})
     
     .catch(error => {
     console.error("Error al conectar con el backend:", error);
@@ -50,9 +54,59 @@ fetch("http://localhost:8080/api/drivers")
         return response.json();
     })
     .then(pilotos => {
-        console.log("Pilotos recibidos:", pilotos);
-    })
+    console.log("Pilotos recibidos:", pilotos);
+
+    const pilotosActivos = pilotos.filter(piloto => piloto.activo === true).length;
+
+    document.getElementById("pilotosActivos").textContent = pilotosActivos;
+})
 .catch(error => {
     console.error("Error al conectar con pilotos:", error);
     mostrarError("No se pudo conectar con el servicio de pilotos.");
 });
+
+fetch("http://localhost:8080/api/violations")
+    .then(response => {
+        if (!response.ok) {
+            throw new Error("No se pudo obtener la información de infracciones");
+        }
+
+        return response.json();
+    })
+    .then(infracciones => {
+        console.log("Infracciones recibidas:", infracciones);
+
+        const infraccionesPendientes = infracciones.filter(
+            infraccion => infraccion.estado === "PENDING"
+        ).length;
+
+        document.getElementById("infraccionesPendientes").textContent =
+            infraccionesPendientes;
+    })
+    .catch(error => {
+        console.error("Error al conectar con infracciones:", error);
+        mostrarError("No se pudo conectar con el servicio de infracciones.");
+    });
+
+    fetch("http://localhost:8080/api/passenger-alerts")
+    .then(response => {
+        if (!response.ok) {
+            throw new Error("No se pudo obtener la información de alertas");
+        }
+
+        return response.json();
+    })
+    .then(alertas => {
+        console.log("Alertas recibidas:", alertas);
+
+        const alertasPendientes = alertas.filter(
+            alerta => alerta.estado === "PENDING"
+        ).length;
+
+        document.getElementById("alertasPendientes").textContent =
+            alertasPendientes;
+    })
+    .catch(error => {
+        console.error("Error al conectar con alertas:", error);
+        mostrarError("No se pudo conectar con el servicio de alertas.");
+    });
