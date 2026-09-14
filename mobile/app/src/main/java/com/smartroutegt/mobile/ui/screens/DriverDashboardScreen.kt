@@ -14,6 +14,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.material3.Button
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 
 @Composable
 fun DriverDashboardScreen() {
@@ -21,6 +27,33 @@ fun DriverDashboardScreen() {
     val rutaAsignada = "Ruta 101"
     var estadoViaje by remember { mutableStateOf("No iniciado") }
     val sancionesConfirmadas = 2
+    val velocidadActual = 0
+    val proximaParada = "Parada Central"
+    val paradas = listOf(
+    "Parada Central",
+    "Parada Norte",
+    "Parada Sur"
+)
+    var estadoGps by remember { mutableStateOf("Permiso pendiente") }
+    val alertaActual = "Sin alertas"
+
+    val context = LocalContext.current
+
+    val permisoUbicacionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permisos ->
+        val ubicacionPrecisaConcedida =
+            permisos[Manifest.permission.ACCESS_FINE_LOCATION] == true
+
+    val ubicacionAproximadaConcedida =
+        permisos[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+
+    estadoGps = if (ubicacionPrecisaConcedida || ubicacionAproximadaConcedida) {
+        "Permiso concedido"
+    } else {
+        "Permiso denegado"
+    }
+}
 
     Column(
         modifier = Modifier
@@ -44,6 +77,62 @@ fun DriverDashboardScreen() {
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(text = "Sanciones confirmadas: $sancionesConfirmadas")
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(text = "Velocidad actual: $velocidadActual km/h")
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(text = "Próxima parada: $proximaParada")
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(text = "Paradas de la ruta:")
+
+        paradas.forEach { parada ->
+            Text(text = "• $parada")
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(text = "Estado GPS: $estadoGps")
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Button(
+            onClick = {
+                val permisoPreciso = ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                 )
+
+                val permisoAproximado = ContextCompat.checkSelfPermission(
+                     context,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+
+                if (
+                    permisoPreciso == PackageManager.PERMISSION_GRANTED ||
+                    permisoAproximado == PackageManager.PERMISSION_GRANTED
+                ) {
+                    estadoGps = "Permiso concedido"
+                } else {
+                    permisoUbicacionLauncher.launch(
+                        arrayOf(
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+            )
+        }
+    }
+) {
+    Text(text = "Habilitar ubicación")
+}
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(text = "Alertas: $alertaActual")
 
         Spacer(modifier = Modifier.height(24.dp))
 
