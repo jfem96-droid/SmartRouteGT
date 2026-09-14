@@ -15,6 +15,7 @@ import com.smartroutegt.mobile.ui.screens.RoleSelectionScreen
 import com.smartroutegt.mobile.ui.screens.PassengerHomeScreen
 import com.smartroutegt.mobile.ui.screens.RouteSearchScreen
 import com.smartroutegt.mobile.ui.screens.NearbyBusesScreen
+import com.smartroutegt.mobile.ui.screens.BusInfoScreen
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,6 +59,9 @@ class MainActivity : ComponentActivity() {
                             },
                             onNearbyBuses = {
                                 currentScreen = "nearbyBuses"
+                            },
+                            onBusInfo = {
+                                currentScreen = "busInfo"
                             }
                         )
                     }
@@ -68,6 +72,10 @@ class MainActivity : ComponentActivity() {
 
                     "nearbyBuses" -> {
                         NearbyBusesScreen()
+                    }
+
+                    "busInfo" -> {
+                        BusInfoScreen()
                     }
                 }
             }

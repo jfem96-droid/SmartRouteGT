@@ -15,7 +15,8 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun PassengerHomeScreen(
     onSearchRoute: () -> Unit,
-    onNearbyBuses: () -> Unit
+    onNearbyBuses: () -> Unit,
+    onBusInfo: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -48,7 +49,7 @@ fun PassengerHomeScreen(
         }
 
         Button(
-            onClick = { },
+            onClick = onBusInfo,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 12.dp)
