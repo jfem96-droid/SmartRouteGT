@@ -12,7 +12,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun WelcomeScreen() {
+fun WelcomeScreen(
+    onContinue: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -27,7 +29,7 @@ fun WelcomeScreen() {
         )
 
         Button(
-            onClick = { }
+            onClick = onContinue
         ) {
             Text(text = "Continuar")
         }
