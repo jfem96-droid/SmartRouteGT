@@ -16,4 +16,7 @@ object ApiClient {
     val routeApiService: RouteApiService by lazy {
         retrofit.create(RouteApiService::class.java)
     }
+    val routeStopApiService: RouteStopApiService by lazy {
+        retrofit.create(RouteStopApiService::class.java)
+    }
 }
