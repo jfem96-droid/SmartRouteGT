@@ -37,6 +37,44 @@
             </header>
 
             <main class="p-4">
+                <section id="seccionRutas" class="mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h3>Rutas</h3>
+            <p class="text-muted mb-0">Administración de rutas del sistema</p>
+        </div>
+
+        <button id="btnNuevaRuta" class="btn btn-primary">
+            Nueva ruta
+        </button>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Código</th>
+                            <th>Nombre</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="tablaRutas">
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">
+                                No hay rutas cargadas.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
     <h3>Dashboard</h3>
     <p class="text-muted">Resumen general del sistema de transporte</p>
 
