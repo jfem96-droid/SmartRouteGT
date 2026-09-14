@@ -14,6 +14,7 @@ import java.util.List;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -83,12 +84,52 @@ public class DriverRouteAssignmentController {
         if (!route.isActiva()) {
             return ResponseEntity.badRequest().body("La ruta está inactiva");
         }
+        if (driverRouteAssignmentRepository
+        .existsByDriverIdAndActivaTrue(driver.getId())) {
+
+        return ResponseEntity.badRequest()
+            .body("El piloto ya tiene una asignación activa");
+        }
+
+        if (driverRouteAssignmentRepository
+        .existsByBusIdAndActivaTrue(bus.getId())) {
+
+        return ResponseEntity.badRequest()
+            .body("El bus ya tiene una asignación activa");
+        }
 
         DriverRouteAssignment assignment =
                 new DriverRouteAssignment(driver, bus, route);
 
         return ResponseEntity.ok(
                 driverRouteAssignmentRepository.save(assignment)
+                
         );
+        
+    }
+    @PutMapping("/{id}/deactivate")
+public ResponseEntity<?> desactivarAsignacion(
+        @PathVariable Long id) {
+
+    DriverRouteAssignment assignment =
+            driverRouteAssignmentRepository
+                    .findById(id)
+                    .orElse(null);
+
+    if (assignment == null) {
+        return ResponseEntity.notFound().build();
+    }
+
+    if (!assignment.isActiva()) {
+        return ResponseEntity.badRequest()
+                .body("La asignación ya se encuentra inactiva");
+    }
+
+    assignment.setActiva(false);
+
+    driverRouteAssignmentRepository.save(assignment);
+
+    return ResponseEntity.ok(
+            "Asignación desactivada correctamente");
     }
 }

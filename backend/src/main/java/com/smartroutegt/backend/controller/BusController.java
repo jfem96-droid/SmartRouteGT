@@ -31,9 +31,37 @@ public class BusController {
     }
 
     @PostMapping
-    public Bus crearBus(@RequestBody Bus bus) {
-        return busRepository.save(bus);
+public ResponseEntity<?> crearBus(@RequestBody Bus bus) {
+
+    if (bus.getCodigo() == null || bus.getCodigo().isBlank()) {
+        return ResponseEntity.badRequest()
+                .body("El código del bus es obligatorio");
     }
+
+    if (bus.getPlaca() == null || bus.getPlaca().isBlank()) {
+        return ResponseEntity.badRequest()
+                .body("La placa del bus es obligatoria");
+    }
+
+    if (bus.getCapacidad() <= 0) {
+        return ResponseEntity.badRequest()
+                .body("La capacidad debe ser mayor que 0");
+    }
+
+    if (busRepository.existsByCodigo(bus.getCodigo())) {
+        return ResponseEntity.badRequest()
+                .body("Ya existe un bus con ese código");
+    }
+
+    if (busRepository.existsByPlaca(bus.getPlaca())) {
+        return ResponseEntity.badRequest()
+                .body("Ya existe un bus con esa placa");
+    }
+
+    Bus busGuardado = busRepository.save(bus);
+
+    return ResponseEntity.ok(busGuardado);
+}
     @GetMapping("/{id}")
 public ResponseEntity<?> obtenerBusPorId(@PathVariable Long id) {
 
@@ -55,6 +83,39 @@ public ResponseEntity<?> actualizarBus(
         return ResponseEntity.notFound().build();
     }
 
+    if (datosNuevos.getCodigo() == null
+            || datosNuevos.getCodigo().isBlank()) {
+
+        return ResponseEntity.badRequest()
+                .body("El código del bus es obligatorio");
+    }
+
+    if (datosNuevos.getPlaca() == null
+            || datosNuevos.getPlaca().isBlank()) {
+
+        return ResponseEntity.badRequest()
+                .body("La placa del bus es obligatoria");
+    }
+
+    if (datosNuevos.getCapacidad() <= 0) {
+        return ResponseEntity.badRequest()
+                .body("La capacidad debe ser mayor que 0");
+    }
+
+    if (busRepository.existsByCodigoAndIdNot(
+            datosNuevos.getCodigo(), id)) {
+
+        return ResponseEntity.badRequest()
+                .body("Ya existe otro bus con ese código");
+    }
+
+    if (busRepository.existsByPlacaAndIdNot(
+            datosNuevos.getPlaca(), id)) {
+
+        return ResponseEntity.badRequest()
+                .body("Ya existe otro bus con esa placa");
+    }
+
     bus.setCodigo(datosNuevos.getCodigo());
     bus.setPlaca(datosNuevos.getPlaca());
     bus.setCapacidad(datosNuevos.getCapacidad());
@@ -63,6 +124,7 @@ public ResponseEntity<?> actualizarBus(
 
     return ResponseEntity.ok(busActualizado);
 }
+
 @DeleteMapping("/{id}")
 public ResponseEntity<?> desactivarBus(@PathVariable Long id) {
 

@@ -27,7 +27,7 @@ public class DriverController {
     private final BubbleSortService bubbleSortService;
     private final AuditLogRepository auditLogRepository;
 
-  public DriverController(
+public DriverController(
         DriverRepository driverRepository,
         BubbleSortService bubbleSortService,
         AuditLogRepository auditLogRepository) {
@@ -49,9 +49,41 @@ public List<Driver> obtenerPilotosOrdenadosPorSanciones() {
 }
 
     @PostMapping
-    public Driver crearPiloto(@RequestBody Driver driver) {
-        return driverRepository.save(driver);
+public ResponseEntity<?> crearPiloto(@RequestBody Driver driver) {
+
+    if (driver.getNombre() == null ||
+            driver.getNombre().isBlank()) {
+
+        return ResponseEntity.badRequest()
+                .body("El nombre del piloto es obligatorio");
     }
+
+    if (driver.getLicencia() == null ||
+            driver.getLicencia().isBlank()) {
+
+        return ResponseEntity.badRequest()
+                .body("La licencia del piloto es obligatoria");
+    }
+
+    if (driver.getTelefono() == null ||
+            driver.getTelefono().isBlank()) {
+
+        return ResponseEntity.badRequest()
+                .body("El teléfono del piloto es obligatorio");
+    }
+
+    if (driverRepository.existsByLicencia(
+            driver.getLicencia())) {
+
+        return ResponseEntity.badRequest()
+                .body("Ya existe un piloto con esa licencia");
+    }
+
+    Driver driverGuardado =
+            driverRepository.save(driver);
+
+    return ResponseEntity.ok(driverGuardado);
+}
     @GetMapping("/{id}")
 public ResponseEntity<?> obtenerPilotoPorId(@PathVariable Long id) {
 
@@ -68,17 +100,47 @@ public ResponseEntity<?> actualizarPiloto(
         @PathVariable Long id,
         @RequestBody Driver datosNuevos) {
 
-    Driver driver = driverRepository.findById(id).orElse(null);
+    Driver driver =
+            driverRepository.findById(id).orElse(null);
 
     if (driver == null) {
         return ResponseEntity.notFound().build();
+    }
+
+    if (datosNuevos.getNombre() == null ||
+            datosNuevos.getNombre().isBlank()) {
+
+        return ResponseEntity.badRequest()
+                .body("El nombre del piloto es obligatorio");
+    }
+
+    if (datosNuevos.getLicencia() == null ||
+            datosNuevos.getLicencia().isBlank()) {
+
+        return ResponseEntity.badRequest()
+                .body("La licencia del piloto es obligatoria");
+    }
+
+    if (datosNuevos.getTelefono() == null ||
+            datosNuevos.getTelefono().isBlank()) {
+
+        return ResponseEntity.badRequest()
+                .body("El teléfono del piloto es obligatorio");
+    }
+
+    if (driverRepository.existsByLicenciaAndIdNot(
+            datosNuevos.getLicencia(), id)) {
+
+        return ResponseEntity.badRequest()
+                .body("Ya existe otro piloto con esa licencia");
     }
 
     driver.setNombre(datosNuevos.getNombre());
     driver.setLicencia(datosNuevos.getLicencia());
     driver.setTelefono(datosNuevos.getTelefono());
 
-    Driver driverActualizado = driverRepository.save(driver);
+    Driver driverActualizado =
+            driverRepository.save(driver);
 
     return ResponseEntity.ok(driverActualizado);
 }
