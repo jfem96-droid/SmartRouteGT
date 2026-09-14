@@ -6,6 +6,20 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.smartroutegt.mobile.ui.screens.WelcomeScreen
 import com.smartroutegt.mobile.ui.theme.SmartRouteGTTheme
+import com.smartroutegt.mobile.ui.screens.LoginScreen
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.smartroutegt.mobile.ui.screens.RoleSelectionScreen
+import com.smartroutegt.mobile.ui.screens.PassengerHomeScreen
+import com.smartroutegt.mobile.ui.screens.RouteSearchScreen
+import com.smartroutegt.mobile.ui.screens.NearbyBusesScreen
+import com.smartroutegt.mobile.ui.screens.BusInfoScreen
+import com.smartroutegt.mobile.ui.screens.EtaScreen
+import com.smartroutegt.mobile.ui.screens.SosScreen
+import com.smartroutegt.mobile.ui.screens.DriverReportScreen
+import com.smartroutegt.mobile.ui.screens.RouteReportScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -13,8 +27,117 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SmartRouteGTTheme {
-                WelcomeScreen()
+                var currentScreen by remember {
+                    mutableStateOf("welcome")
+                }
+
+                when (currentScreen) {
+                    "welcome" -> {
+                        WelcomeScreen(
+                            onContinue = {
+                                currentScreen = "login"
+                            }
+                        )
+                    }
+
+                    "login" -> {
+                        LoginScreen(
+                            onLoginClick = {
+                                currentScreen = "role"
+                            }
+                        )
+                    }
+
+                    "role" -> {
+                        RoleSelectionScreen(
+                            onPassengerSelected = {
+                                currentScreen = "passenger"
+                            },
+                            onDriverSelected = { }
+                        )
+                    }
+
+                    "passenger" -> {
+                        PassengerHomeScreen(
+                            onSearchRoute = {
+                                currentScreen = "routeSearch"
+                            },
+                            onNearbyBuses = {
+                                currentScreen = "nearbyBuses"
+                            },
+                            onBusInfo = {
+                                currentScreen = "busInfo"
+                            },
+                            onEta = {
+                                currentScreen = "eta"
+                            },
+                            onSos = {
+                                currentScreen = "sos"
+                            },
+                            onDriverReport = {
+                                currentScreen = "driverReport"
+                            },
+                            onRouteReport = {
+                                currentScreen = "routeReport"
+                            }
+                        )
+                    }
+
+                    "routeSearch" -> {
+                        RouteSearchScreen(
+                            onBack = {
+                                currentScreen = "passenger"
+                            }
+                        )
+                    }
+
+                    "nearbyBuses" -> {
+                        NearbyBusesScreen(
+                            onBack = {
+                                currentScreen = "passenger"
+                            }
+                        )
+                    }
+
+                    "busInfo" -> {
+                        BusInfoScreen(
+                            onBack = {
+                                currentScreen = "passenger"
+                            }
+                        )
+                    }
+
+                    "eta" -> {
+                        EtaScreen(
+                            onBack = {
+                                currentScreen = "passenger"
+                            }
+                        )
+                    }
+
+                    "sos" -> {
+                        SosScreen(
+                            onBack = {
+                                currentScreen = "passenger"
+                            }
+                        )
+                    }
+                    "driverReport" -> {
+                        DriverReportScreen(
+                            onBack = {
+                                currentScreen = "passenger"
+                            }
+                        )
+                    }
+                    "routeReport" -> {
+                        RouteReportScreen(
+                            onBack = {
+                                currentScreen = "passenger"
+                            }
+                        )
+                    }
                 }
             }
         }
     }
+}
