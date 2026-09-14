@@ -16,59 +16,69 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import com.smartroutegt.backend.entity.RouteStop;
+import com.smartroutegt.backend.repository.RouteStopRepository;
+import com.smartroutegt.backend.service.StopVisitService;
+
 @RestController
 @RequestMapping("/api/locations")
 public class BusLocationController {
 
-    private static final double LIMITE_VELOCIDAD = 60.0;
-    private static final long SEGUNDOS_EXCESO_PERMITIDOS = 10;
+private static final double LIMITE_VELOCIDAD = 60.0;
+private static final long SEGUNDOS_EXCESO_PERMITIDOS = 10;
 
-    private final BusLocationRepository locationRepository;
-    private final TripRepository tripRepository;
-    private final ViolationRepository violationRepository;
+private final BusLocationRepository locationRepository;
+private final TripRepository tripRepository;
+private final ViolationRepository violationRepository;
+private final RouteStopRepository routeStopRepository;
+private final StopVisitService stopVisitService;
 
-    public BusLocationController(
-            BusLocationRepository locationRepository,
-            TripRepository tripRepository,
-            ViolationRepository violationRepository) {
+public BusLocationController(
+        BusLocationRepository locationRepository,
+        TripRepository tripRepository,
+        ViolationRepository violationRepository,
+        RouteStopRepository routeStopRepository,
+        StopVisitService stopVisitService) {
 
-        this.locationRepository = locationRepository;
-        this.tripRepository = tripRepository;
-        this.violationRepository = violationRepository;
-    }
+this.locationRepository = locationRepository;
+this.tripRepository = tripRepository;
+this.violationRepository = violationRepository;
+this.routeStopRepository = routeStopRepository;
+this.stopVisitService = stopVisitService;
+}
 
-    @PostMapping
-    public ResponseEntity<?> registrarUbicacion(
-            @RequestParam Long tripId,
-            @RequestParam double latitud,
-            @RequestParam double longitud,
-            @RequestParam double velocidad) {
+@PostMapping
+public ResponseEntity<?> registrarUbicacion(
+        @RequestParam Long tripId,
+        @RequestParam double latitud,
+        @RequestParam double longitud,
+        @RequestParam double velocidad) {
 
         Trip trip = tripRepository.findById(tripId).orElse(null);
 
         if (trip == null) {
-            return ResponseEntity.badRequest()
-                    .body("El viaje no existe");
+        return ResponseEntity.badRequest()
+                .body("El viaje no existe");
         }
 
         if (!trip.isActivo()) {
-            return ResponseEntity.badRequest()
-                    .body("El viaje ya está finalizado");
+        return ResponseEntity.badRequest()
+                .body("El viaje ya está finalizado");
         }
 
         if (latitud < -90 || latitud > 90) {
-            return ResponseEntity.badRequest()
-                    .body("Latitud inválida");
+        return ResponseEntity.badRequest()
+        .body("Latitud inválida");
         }
 
         if (longitud < -180 || longitud > 180) {
-            return ResponseEntity.badRequest()
-                    .body("Longitud inválida");
+        return ResponseEntity.badRequest()
+        .body("Longitud inválida");
         }
 
         if (velocidad < 0) {
-            return ResponseEntity.badRequest()
-                    .body("La velocidad no puede ser negativa");
+        return ResponseEntity.badRequest()
+                .body("La velocidad no puede ser negativa");
         }
 
         BusLocation location = new BusLocation(
@@ -86,16 +96,40 @@ public class BusLocationController {
                 trip,
                 locationGuardada
         );
+        procesarParadas(
+        trip,
+        locationGuardada
+        );
 
         return ResponseEntity.ok(locationGuardada);
-    }
+        }
+private void procesarParadas(
+        Trip trip,
+        BusLocation locationActual) {
 
-    private void detectarExcesoVelocidad(
-            Trip trip,
-            BusLocation locationActual) {
+List<RouteStop> paradasRuta =
+        routeStopRepository
+                .findByRouteIdOrderByOrdenAsc(
+                        trip.getRoute().getId());
+
+for (RouteStop routeStop : paradasRuta) {
+
+        stopVisitService.procesarUbicacion(
+                trip,
+                routeStop.getStop(),
+                locationActual.getLatitud(),
+                locationActual.getLongitud(),
+                locationActual.getFechaHora()
+        );
+}
+}
+
+        private void detectarExcesoVelocidad(
+        Trip trip,
+        BusLocation locationActual) {
 
         if (locationActual.getVelocidad() <= LIMITE_VELOCIDAD) {
-            return;
+        return;
         }
 
         LocalDateTime inicioExceso;
@@ -108,38 +142,38 @@ public class BusLocationController {
 
         if (ultimaUbicacionNormal.isPresent()) {
 
-            Optional<BusLocation> primeraUbicacionExceso =
-                    locationRepository
-                            .findFirstByTripIdAndFechaHoraAfterOrderByFechaHoraAsc(
-                                    trip.getId(),
-                                    ultimaUbicacionNormal
-                                            .get()
-                                            .getFechaHora());
+        Optional<BusLocation> primeraUbicacionExceso =
+                locationRepository
+                        .findFirstByTripIdAndFechaHoraAfterOrderByFechaHoraAsc(
+                                trip.getId(),
+                                ultimaUbicacionNormal
+                                        .get()
+                                        .getFechaHora());
 
-            if (primeraUbicacionExceso.isEmpty()) {
+        if (primeraUbicacionExceso.isEmpty()) {
                 return;
-            }
+        }
 
-            inicioExceso =
-                    primeraUbicacionExceso
-                            .get()
-                            .getFechaHora();
+        inicioExceso =
+                primeraUbicacionExceso
+                        .get()
+                        .getFechaHora();
 
         } else {
 
-            Optional<BusLocation> primeraUbicacionViaje =
-                    locationRepository
-                            .findFirstByTripIdOrderByFechaHoraAsc(
-                                    trip.getId());
+        Optional<BusLocation> primeraUbicacionViaje =
+                locationRepository
+                        .findFirstByTripIdOrderByFechaHoraAsc(
+                                trip.getId());
 
-            if (primeraUbicacionViaje.isEmpty()) {
+        if (primeraUbicacionViaje.isEmpty()) {
                 return;
-            }
+        }
 
-            inicioExceso =
-                    primeraUbicacionViaje
-                            .get()
-                            .getFechaHora();
+        inicioExceso =
+                primeraUbicacionViaje
+                        .get()
+                        .getFechaHora();
         }
 
         long segundosExceso =
@@ -149,7 +183,7 @@ public class BusLocationController {
                 ).getSeconds();
 
         if (segundosExceso < SEGUNDOS_EXCESO_PERMITIDOS) {
-            return;
+        return;
         }
 
         boolean yaExisteInfraccion =
@@ -160,7 +194,7 @@ public class BusLocationController {
                                 inicioExceso);
 
         if (yaExisteInfraccion) {
-            return;
+        return;
         }
 
         Violation violation = new Violation(
@@ -176,24 +210,24 @@ public class BusLocationController {
         );
 
         violationRepository.save(violation);
-    }
+}
 
-    @GetMapping("/trip/{tripId}")
-    public List<BusLocation> obtenerRecorrido(
-            @PathVariable Long tripId) {
+@GetMapping("/trip/{tripId}")
+public List<BusLocation> obtenerRecorrido(
+        @PathVariable Long tripId) {
 
         return locationRepository
                 .findByTripIdOrderByFechaHoraAsc(tripId);
-    }
+}
 
-    @GetMapping("/bus/{busId}/latest")
-    public ResponseEntity<?> obtenerUltimaUbicacion(
-            @PathVariable Long busId) {
+@GetMapping("/bus/{busId}/latest")
+public ResponseEntity<?> obtenerUltimaUbicacion(
+        @PathVariable Long busId) {
 
         return locationRepository
                 .findFirstByBusIdOrderByFechaHoraDesc(busId)
                 .map(ResponseEntity::ok)
                 .orElseGet(() ->
                         ResponseEntity.notFound().build());
-    }
+}
 }
