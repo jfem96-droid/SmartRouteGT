@@ -15,6 +15,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.runtime.LaunchedEffect
+import com.smartroutegt.mobile.data.remote.ApiClient
+import com.smartroutegt.mobile.data.remote.RouteDto
 
 
 @Composable
@@ -24,6 +27,27 @@ fun RouteSearchScreen(
 
     var origin by remember {
         mutableStateOf("")
+    }
+    var routes by remember {
+        mutableStateOf<List<RouteDto>>(emptyList())
+    }
+
+    var isLoadingRoutes by remember {
+        mutableStateOf(true)
+    }
+
+    var routeLoadError by remember {
+        mutableStateOf<String?>(null)
+    }
+    LaunchedEffect(Unit) {
+        try {
+            routes = ApiClient.routeApiService.getRoutes()
+            routeLoadError = null
+        } catch (e: Exception) {
+            routeLoadError = "No se pudieron cargar las rutas"
+        } finally {
+            isLoadingRoutes = false
+        }
     }
 
     var destination by remember {
@@ -46,6 +70,36 @@ fun RouteSearchScreen(
             text = "Buscar ruta",
             modifier = Modifier.padding(top = 16.dp)
         )
+
+        when {
+            isLoadingRoutes -> {
+                Text(
+                    text = "Cargando rutas...",
+                    modifier = Modifier.padding(top = 24.dp)
+                )
+            }
+
+            routeLoadError != null -> {
+                Text(
+                    text = routeLoadError ?: "",
+                    modifier = Modifier.padding(top = 24.dp)
+                )
+            }
+
+            else -> {
+                Text(
+                    text = "Rutas disponibles:",
+                    modifier = Modifier.padding(top = 24.dp)
+                )
+
+                routes.forEach { route ->
+                    Text(
+                        text = "${route.codigo} - ${route.nombre}",
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+            }
+        }
 
         OutlinedTextField(
             value = origin,
