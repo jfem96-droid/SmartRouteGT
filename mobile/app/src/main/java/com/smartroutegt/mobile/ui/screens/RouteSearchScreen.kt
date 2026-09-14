@@ -18,6 +18,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.LaunchedEffect
 import com.smartroutegt.mobile.data.remote.ApiClient
 import com.smartroutegt.mobile.data.remote.RouteDto
+import com.smartroutegt.mobile.data.remote.StopDto
 
 
 @Composable
@@ -33,6 +34,14 @@ fun RouteSearchScreen(
     }
     var selectedRoute by remember {
         mutableStateOf<RouteDto?>(null)
+    }
+
+    var selectedOrigin by remember {
+        mutableStateOf<StopDto?>(null)
+    }
+
+    var selectedDestination by remember {
+        mutableStateOf<StopDto?>(null)
     }
 
     var routeStops by remember {
@@ -173,12 +182,48 @@ fun RouteSearchScreen(
 
                     else -> {
                         routeStops.forEach { routeStop ->
-                            Text(
-                                text = "${routeStop.orden}. ${routeStop.stop.nombre}",
-                                modifier = Modifier.padding(top = 8.dp)
-                            )
+
+                            Button(
+                                onClick = {
+                                    selectedOrigin = routeStop.stop
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp)
+                            ) {
+                                Text(
+                                    text = "Origen: ${routeStop.stop.nombre}"
+                                )
+                            }
+
+                            Button(
+                                onClick = {
+                                    selectedDestination = routeStop.stop
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp)
+                            ) {
+                                Text(
+                                    text = "Destino: ${routeStop.stop.nombre}"
+                                )
+                            }
                         }
                     }
+                }
+
+                selectedOrigin?.let { stop ->
+                    Text(
+                        text = "Origen seleccionado: ${stop.nombre}",
+                        modifier = Modifier.padding(top = 16.dp)
+                    )
+                }
+
+                selectedDestination?.let { stop ->
+                    Text(
+                        text = "Destino seleccionado: ${stop.nombre}",
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
                 }
             }
         }
