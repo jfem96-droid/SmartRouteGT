@@ -13,4 +13,7 @@ object ApiClient {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
+    val routeApiService: RouteApiService by lazy {
+        retrofit.create(RouteApiService::class.java)
+    }
 }
