@@ -18,7 +18,8 @@ fun PassengerHomeScreen(
     onNearbyBuses: () -> Unit,
     onBusInfo: () -> Unit,
     onEta: () -> Unit,
-    onSos: () -> Unit
+    onSos: () -> Unit,
+    onDriverReport: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -78,7 +79,7 @@ fun PassengerHomeScreen(
         }
 
         Button(
-            onClick = { },
+            onClick = onDriverReport,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 12.dp)
