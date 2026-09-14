@@ -14,7 +14,7 @@ import androidx.compose.runtime.setValue
 import com.smartroutegt.mobile.ui.screens.RoleSelectionScreen
 import com.smartroutegt.mobile.ui.screens.PassengerHomeScreen
 import com.smartroutegt.mobile.ui.screens.RouteSearchScreen
-
+import com.smartroutegt.mobile.ui.screens.NearbyBusesScreen
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,12 +55,19 @@ class MainActivity : ComponentActivity() {
                         PassengerHomeScreen(
                             onSearchRoute = {
                                 currentScreen = "routeSearch"
+                            },
+                            onNearbyBuses = {
+                                currentScreen = "nearbyBuses"
                             }
                         )
                     }
 
                     "routeSearch" -> {
                         RouteSearchScreen()
+                    }
+
+                    "nearbyBuses" -> {
+                        NearbyBusesScreen()
                     }
                 }
             }
