@@ -87,7 +87,7 @@ function mostrarRutas(rutas) {
             <td>${ruta.nombre}</td>
             <td>${ruta.activa ? "Activa" : "Inactiva"}</td>
             <td>
-                <button class="btn btn-sm btn-secondary me-1">
+                <button class="btn btn-sm btn-secondary me-1" onclick='editarRuta(${JSON.stringify(ruta)})'>
                     Editar
                 </button>
 
@@ -101,6 +101,18 @@ function mostrarRutas(rutas) {
 
         tablaRutas.appendChild(fila);
     });
+}
+function editarRuta(ruta) {
+    document.getElementById("modalRutaLabel").textContent = "Editar ruta";
+
+    document.getElementById("codigoRuta").value = ruta.codigo;
+    document.getElementById("nombreRuta").value = ruta.nombre;
+    document.getElementById("activaRuta").checked = ruta.activa;
+
+    document.getElementById("btnGuardarRuta").textContent = "Actualizar";
+
+    const modal = new bootstrap.Modal(document.getElementById("modalRuta"));
+    modal.show();
 }
 
     // PILOTOS
