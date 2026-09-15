@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Card
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -238,17 +240,35 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Text(text = "Bus asignado: $busAsignado")
+        Card(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = "Operación asignada",
+                style = MaterialTheme.typography.titleMedium
+            )
 
-        Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-        Text(text = "Ruta asignada: $rutaAsignada")
+            Text(text = "Bus: $busAsignado")
 
-        Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-        Text(text = "Estado del viaje: $estadoViaje")
+            Text(text = "Ruta: $rutaAsignada")
 
-        Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Estado del viaje: $estadoViaje",
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
+    }
+
+    Spacer(modifier = Modifier.height(16.dp))
 
         Text(text = "Sanciones confirmadas: $sancionesConfirmadas")
 
