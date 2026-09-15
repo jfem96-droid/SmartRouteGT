@@ -22,4 +22,8 @@ object ApiClient {
     val algorithmApiService: AlgorithmApiService by lazy {
         retrofit.create(AlgorithmApiService::class.java)
     }
+
+    val nearestBusApiService: NearestBusApiService by lazy {
+        retrofit.create(NearestBusApiService::class.java)
+    }
 }
