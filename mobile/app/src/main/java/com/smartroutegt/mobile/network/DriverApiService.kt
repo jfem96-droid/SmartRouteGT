@@ -36,4 +36,11 @@ class DriverApiService(
     ): TripDto {
         return api.startTrip(assignmentId)
     }
+
+    suspend fun finishTrip(
+        tripId: Long
+    ): TripDto {
+        return api.finishTrip(tripId)
+    }
+
 }

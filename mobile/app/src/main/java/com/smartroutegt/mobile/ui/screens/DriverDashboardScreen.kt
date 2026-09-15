@@ -78,6 +78,10 @@ fun DriverDashboardScreen(
         mutableStateOf(false)
     }
 
+    var finalizandoViaje by remember {
+        mutableStateOf(false)
+    }   
+
     var errorViaje by remember {
         mutableStateOf<String?>(null)
     }
@@ -264,8 +268,8 @@ if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
-    onClick = {
-        coroutineScope.launch {
+            onClick = {
+            coroutineScope.launch {
             iniciandoViaje = true
             errorViaje = null
 
@@ -307,10 +311,37 @@ Spacer(modifier = Modifier.height(12.dp))
 
         Button(
             onClick = {
-                estadoViaje = "Finalizado"
+                val tripId = viajeActual?.id
+
+                if (tripId != null) {
+                    coroutineScope.launch {
+                    finalizandoViaje = true
+                    errorViaje = null
+
+                    try {
+                        driverApiService.finishTrip(tripId)
+
+                        viajeActual = null
+                        estadoViaje = "Finalizado"
+                    } catch (exception: HttpException) {
+                        errorViaje = "No se pudo finalizar el viaje"
+                    } catch (exception: IOException) {
+                        errorViaje = "No se pudo conectar con el servidor"
+                    } finally {
+                        finalizandoViaje = false
+                    }
+                }
             }
-        ) {
-            Text(text = "Finalizar viaje")
-        }
+        },
+        enabled = viajeActual != null && !finalizandoViaje
+    ) {
+        Text(
+            text = if (finalizandoViaje) {
+                "Finalizando..."
+            } else {
+                "Finalizar viaje"
+            }
+        )
+    }
     }
 }
