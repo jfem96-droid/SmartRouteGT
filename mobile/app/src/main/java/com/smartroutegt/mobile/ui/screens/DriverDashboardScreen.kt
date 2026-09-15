@@ -147,21 +147,40 @@ fun DriverDashboardScreen(
     estadoGps = "Buscando ubicación..."
 
     fun actualizarUbicacion(location: Location?) {
-    if (location != null) {
-        latitud = location.latitude
-        longitud = location.longitude
+        if (location != null) {
+            latitud = location.latitude
+            longitud = location.longitude
 
-        velocidadActual = if (location.hasSpeed()) {
-            location.speed * 3.6f
+            velocidadActual = if (location.hasSpeed()) {
+                location.speed * 3.6f
+            } else {
+                0f
+            }
+
+            estadoGps = "Ubicación disponible"
+
+            val tripId = viajeActual?.id
+
+            if (tripId != null) {
+                coroutineScope.launch {
+                    try {
+                        driverApiService.registerLocation(
+                            tripId = tripId,
+                            latitud = location.latitude,
+                            longitud = location.longitude,
+                            velocidad = velocidadActual.toDouble()
+                        )
+                    } catch (exception: HttpException) {
+                        estadoGps = "Error al registrar ubicación"
+                    } catch (exception: IOException) {
+                        estadoGps = "Sin conexión con el servidor"
+                    }
+                }
+            }
         } else {
-            0f
+            estadoGps = "Ubicación no disponible"
         }
-
-        estadoGps = "Ubicación disponible"
-    } else {
-        estadoGps = "Ubicación no disponible"
     }
-}
 
 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
     locationManager.getCurrentLocation(

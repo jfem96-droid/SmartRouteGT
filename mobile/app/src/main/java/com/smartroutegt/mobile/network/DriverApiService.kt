@@ -43,4 +43,17 @@ class DriverApiService(
         return api.finishTrip(tripId)
     }
 
+    suspend fun registerLocation(
+        tripId: Long,
+        latitud: Double,
+        longitud: Double,
+        velocidad: Double
+    ): BusLocationDto {
+        return api.registerLocation(
+            tripId = tripId,
+            latitud = latitud,
+            longitud = longitud,
+            velocidad = velocidad
+        )
+    }
 }
