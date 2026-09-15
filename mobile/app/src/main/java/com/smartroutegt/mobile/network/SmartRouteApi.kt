@@ -5,6 +5,7 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.Response
 
 interface SmartRouteApi {
 
@@ -21,7 +22,7 @@ interface SmartRouteApi {
     @GET("api/trips/driver/{driverId}/active")
     suspend fun getActiveTripByDriver(
         @Path("driverId") driverId: Long
-    ): TripDto
+    ): Response<TripDto>
 
     @POST("api/trips/start")
     suspend fun startTrip(
