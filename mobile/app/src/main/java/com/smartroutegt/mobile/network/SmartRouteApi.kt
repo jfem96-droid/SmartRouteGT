@@ -8,10 +8,20 @@ import retrofit2.http.Query
 
 interface SmartRouteApi {
 
+    @GET("api/drivers/license/{licencia}")
+    suspend fun getDriverByLicense(
+        @Path("licencia") licencia: String
+    ): DriverDto
+
     @GET("api/assignments/driver/{driverId}")
     suspend fun getAssignmentsByDriver(
         @Path("driverId") driverId: Long
     ): List<DriverRouteAssignmentDto>
+
+    @GET("api/trips/driver/{driverId}/active")
+    suspend fun getActiveTripByDriver(
+        @Path("driverId") driverId: Long
+    ): TripDto
 
     @POST("api/trips/start")
     suspend fun startTrip(
