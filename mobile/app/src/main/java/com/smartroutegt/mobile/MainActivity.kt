@@ -88,8 +88,16 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
+
                     "driver" -> {
-                        DriverDashboardScreen()
+                        val assignment = asignacionActual
+
+                        if (assignment != null) {
+                            DriverDashboardScreen(
+                                assignment = assignment,
+                                initialTrip = viajeActual
+                            )
+                        }
                     }
 
                     "passenger" -> {

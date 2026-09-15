@@ -24,12 +24,37 @@ import android.content.Context
 import android.location.LocationManager
 import android.os.Build
 import android.location.Location
+import com.smartroutegt.mobile.network.DriverRouteAssignmentDto
+import com.smartroutegt.mobile.network.TripDto
+import androidx.compose.runtime.rememberCoroutineScope
+import com.smartroutegt.mobile.network.ApiClient
+import com.smartroutegt.mobile.network.DriverApiService
+import kotlinx.coroutines.launch
+import retrofit2.HttpException
+import java.io.IOException
 
 @Composable
-fun DriverDashboardScreen() {
-    val busAsignado = "BUS-01"
-    val rutaAsignada = "Ruta 101"
-    var estadoViaje by remember { mutableStateOf("No iniciado") }
+fun DriverDashboardScreen(
+    assignment: DriverRouteAssignmentDto,
+    initialTrip: TripDto?
+) {
+    val busAsignado = assignment.bus.codigo
+    val rutaAsignada = assignment.route.nombre
+
+    var viajeActual by remember(initialTrip) {
+        mutableStateOf(initialTrip)
+    }
+
+    var estadoViaje by remember(initialTrip) {
+        mutableStateOf(
+            if (initialTrip != null) {
+                "En curso"
+            } else {
+                "No iniciado"
+            }
+        )
+    }
+
     val sancionesConfirmadas = 2
     var velocidadActual by remember { mutableStateOf(0f) }
     val proximaParada = "Parada Central"
@@ -42,6 +67,20 @@ fun DriverDashboardScreen() {
     val alertaActual = "Sin alertas"
 
     val context = LocalContext.current
+
+    val coroutineScope = rememberCoroutineScope()
+
+    val driverApiService = remember {
+        DriverApiService(ApiClient.create())
+    }
+
+    var iniciandoViaje by remember {
+        mutableStateOf(false)
+    }
+
+    var errorViaje by remember {
+        mutableStateOf<String?>(null)
+    }
 
     val locationManager = remember {
         context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
@@ -225,14 +264,46 @@ if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
-            onClick = {
-                estadoViaje = "En curso"
-            }
-        ) {
-            Text(text = "Iniciar viaje")
-        }
+    onClick = {
+        coroutineScope.launch {
+            iniciandoViaje = true
+            errorViaje = null
 
-        Spacer(modifier = Modifier.height(12.dp))
+            try {
+                val nuevoViaje = driverApiService.startTrip(
+                    assignment.id
+                )
+
+                viajeActual = nuevoViaje
+                estadoViaje = "En curso"
+            } catch (exception: HttpException) {
+                errorViaje = "No se pudo iniciar el viaje"
+            } catch (exception: IOException) {
+                errorViaje = "No se pudo conectar con el servidor"
+            } finally {
+                iniciandoViaje = false
+            }
+        }
+    },
+    enabled = viajeActual == null && !iniciandoViaje
+) {
+    Text(
+        text = if (iniciandoViaje) {
+            "Iniciando..."
+        } else {
+            "Iniciar viaje"
+        }
+    )
+}
+
+if (errorViaje != null) {
+    Text(
+        text = errorViaje!!,
+        modifier = Modifier.padding(top = 8.dp)
+    )
+}
+
+Spacer(modifier = Modifier.height(12.dp))
 
         Button(
             onClick = {
