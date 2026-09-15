@@ -93,22 +93,6 @@ fun DriverDashboardScreen(
     var latitud by remember { mutableStateOf<Double?>(null) }
     var longitud by remember { mutableStateOf<Double?>(null) }
 
-    val permisoUbicacionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permisos ->
-        val ubicacionPrecisaConcedida =
-            permisos[Manifest.permission.ACCESS_FINE_LOCATION] == true
-
-    val ubicacionAproximadaConcedida =
-        permisos[Manifest.permission.ACCESS_COARSE_LOCATION] == true
-
-    estadoGps = if (ubicacionPrecisaConcedida || ubicacionAproximadaConcedida) {
-        "Permiso concedido"
-    } else {
-        "Permiso denegado"
-    }
-    }
-
     fun obtenerUbicacion() {
     val permisoPreciso = ContextCompat.checkSelfPermission(
         context,
@@ -195,6 +179,23 @@ if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
         locationManager.getLastKnownLocation(proveedor)
     )
 }
+}
+
+val permisoUbicacionLauncher = rememberLauncherForActivityResult(
+    contract = ActivityResultContracts.RequestMultiplePermissions()
+) { permisos ->
+    val ubicacionPrecisaConcedida =
+        permisos[Manifest.permission.ACCESS_FINE_LOCATION] == true
+
+    val ubicacionAproximadaConcedida =
+        permisos[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+
+    if (ubicacionPrecisaConcedida || ubicacionAproximadaConcedida) {
+        estadoGps = "Permiso concedido"
+        obtenerUbicacion()
+    } else {
+        estadoGps = "Permiso denegado"
+    }
 }
 
     Column(

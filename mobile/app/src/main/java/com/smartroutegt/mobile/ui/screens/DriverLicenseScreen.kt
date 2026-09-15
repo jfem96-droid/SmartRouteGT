@@ -131,6 +131,8 @@ fun DriverLicenseScreen(
                 }
             } catch (exception: IOException) {
                 error = "No se pudo conectar con el servidor"
+            } catch (exception: IllegalStateException) {
+                error = "Error al consultar viaje activo"
             } finally {
                 cargando = false
             }
