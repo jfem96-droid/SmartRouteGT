@@ -18,16 +18,22 @@ class DriverApiService(
     }
 
     suspend fun getActiveTrip(
-    driverId: Long
-): TripDto? {
-    val response = api.getActiveTripByDriver(driverId)
+        driverId: Long
+    ): TripDto? {
+        val response = api.getActiveTripByDriver(driverId)
 
-    return when {
-        response.isSuccessful -> response.body()
-        response.code() == 404 -> null
-        else -> throw IllegalStateException(
-            "Error al consultar viaje activo: HTTP ${response.code()}"
-        )
+        return when {
+            response.isSuccessful -> response.body()
+            response.code() == 404 -> null
+            else -> throw IllegalStateException(
+                "Error al consultar viaje activo: HTTP ${response.code()}"
+            )
+        }
     }
-}
+
+    suspend fun startTrip(
+        assignmentId: Long
+    ): TripDto {
+        return api.startTrip(assignmentId)
+    }
 }
