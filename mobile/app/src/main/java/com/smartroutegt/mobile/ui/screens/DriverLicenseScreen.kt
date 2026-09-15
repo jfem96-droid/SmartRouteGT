@@ -16,10 +16,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.rememberCoroutineScope
+import com.smartroutegt.mobile.network.ApiClient
+import com.smartroutegt.mobile.network.DriverApiService
+import com.smartroutegt.mobile.network.DriverDto
+import kotlinx.coroutines.launch
+import retrofit2.HttpException
+import java.io.IOException
 
 @Composable
 fun DriverLicenseScreen(
-    onLicenseSubmitted: (String) -> Unit
+    onDriverValidated: (DriverDto) -> Unit
 ) {
     var licencia by remember {
         mutableStateOf("")
@@ -27,6 +34,16 @@ fun DriverLicenseScreen(
 
     var error by remember {
         mutableStateOf<String?>(null)
+    }
+
+    var cargando by remember {
+    mutableStateOf(false)
+    }
+
+    val coroutineScope = rememberCoroutineScope()
+
+    val driverApiService = remember {
+        DriverApiService(ApiClient.create())
     }
 
     Column(
@@ -66,15 +83,48 @@ fun DriverLicenseScreen(
 
                 if (licenciaIngresada.isEmpty()) {
                     error = "Ingresa tu número de licencia"
-                } else {
-                    onLicenseSubmitted(licenciaIngresada)
+                        return@Button
                 }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 24.dp)
-        ) {
-            Text(text = "Continuar")
+
+                coroutineScope.launch {
+                cargando = true
+                error = null
+
+                try {
+                    val driver = driverApiService.getDriverByLicense(
+                        licenciaIngresada
+                )
+
+                if (!driver.activo) {
+                    error = "Piloto inactivo o suspendido"
+                } else {
+                    onDriverValidated(driver)
+                }
+            } catch (exception: HttpException) {
+                error = if (exception.code() == 404) {
+                    "Piloto no encontrado"
+                } else {
+                    "Error al consultar piloto"
+                }
+            } catch (exception: IOException) {
+                error = "No se pudo conectar con el servidor"
+            } finally {
+                cargando = false
+            }
         }
+    },
+    enabled = !cargando,
+    modifier = Modifier
+    .fillMaxWidth()
+    .padding(top = 24.dp)
+) {
+    Text(
+        text = if (cargando) {
+            "Validando..."
+        } else {
+            "Continuar"
+        }
+    )
+}
     }
 }

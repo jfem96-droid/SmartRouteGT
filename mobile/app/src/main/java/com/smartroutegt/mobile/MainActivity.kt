@@ -22,6 +22,7 @@ import com.smartroutegt.mobile.ui.screens.SosScreen
 import com.smartroutegt.mobile.ui.screens.DriverReportScreen
 import com.smartroutegt.mobile.ui.screens.RouteReportScreen
 import com.smartroutegt.mobile.ui.screens.DriverLicenseScreen
+import com.smartroutegt.mobile.network.DriverDto
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,6 +34,10 @@ class MainActivity : ComponentActivity() {
 
                 var currentScreen by remember {
                     mutableStateOf("welcome")
+                }
+
+                var driverActual by remember {
+                    mutableStateOf<DriverDto?>(null)
                 }
 
                 when (currentScreen) {
@@ -65,12 +70,12 @@ class MainActivity : ComponentActivity() {
 
                     "driverLicense" -> {
                         DriverLicenseScreen(
-                            onLicenseSubmitted = {
+                            onDriverValidated = { driver ->
+                                driverActual = driver
                                 currentScreen = "driver"
                             }
                         )
-}
-
+                    }
                     "driver" -> {
                         DriverDashboardScreen()
                     }
