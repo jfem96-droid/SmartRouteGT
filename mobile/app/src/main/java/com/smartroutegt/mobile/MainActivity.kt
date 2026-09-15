@@ -21,6 +21,7 @@ import com.smartroutegt.mobile.ui.screens.EtaScreen
 import com.smartroutegt.mobile.ui.screens.SosScreen
 import com.smartroutegt.mobile.ui.screens.DriverReportScreen
 import com.smartroutegt.mobile.ui.screens.RouteReportScreen
+import com.smartroutegt.mobile.ui.screens.DriverLicenseScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,10 +58,18 @@ class MainActivity : ComponentActivity() {
                                 currentScreen = "passenger"
                             },
                             onDriverSelected = {
-                                currentScreen = "driver"
+                                currentScreen = "driverLicense"
                             }
                         )
                     }
+
+                    "driverLicense" -> {
+                        DriverLicenseScreen(
+                            onLicenseSubmitted = {
+                                currentScreen = "driver"
+                            }
+                        )
+}
 
                     "driver" -> {
                         DriverDashboardScreen()
