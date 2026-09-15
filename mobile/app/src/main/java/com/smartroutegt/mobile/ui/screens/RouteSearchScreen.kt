@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -19,16 +18,14 @@ import androidx.compose.runtime.LaunchedEffect
 import com.smartroutegt.mobile.data.remote.ApiClient
 import com.smartroutegt.mobile.data.remote.RouteDto
 import com.smartroutegt.mobile.data.remote.StopDto
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 
 
 @Composable
 fun RouteSearchScreen(
     onBack: () -> Unit
 ) {
-
-    var origin by remember {
-        mutableStateOf("")
-    }
     var routes by remember {
         mutableStateOf<List<RouteDto>>(emptyList())
     }
@@ -63,6 +60,19 @@ fun RouteSearchScreen(
     var routeLoadError by remember {
         mutableStateOf<String?>(null)
     }
+
+    var isSearchingRoute by remember {
+        mutableStateOf(false)
+    }
+
+    var routeSearchError by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    var routePath by remember {
+        mutableStateOf<List<Long>?>(null)
+    }
+
     LaunchedEffect(Unit) {
         try {
             routes = ApiClient.routeApiService.getRoutes()
@@ -89,9 +99,7 @@ fun RouteSearchScreen(
         }
     }
 
-    var destination by remember {
-        mutableStateOf("")
-    }
+    val coroutineScope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
@@ -135,6 +143,8 @@ fun RouteSearchScreen(
                     Button(
                         onClick = {
                             selectedRoute = route
+                            selectedOrigin = null
+                            selectedDestination = null
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -228,35 +238,83 @@ fun RouteSearchScreen(
             }
         }
 
-        OutlinedTextField(
-            value = origin,
-            onValueChange = { origin = it },
-            label = {
-                Text(text = "Origen")
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 24.dp)
-        )
-
-        OutlinedTextField(
-            value = destination,
-            onValueChange = { destination = it },
-            label = {
-                Text(text = "Destino")
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp)
-        )
-
         Button(
-            onClick = { },
+            onClick = {
+                val route = selectedRoute
+                val origin = selectedOrigin
+                val destination = selectedDestination
+
+                if (route == null || origin == null || destination == null) {
+                    routeSearchError = "Selecciona una ruta, un origen y un destino"
+                    routePath = null
+                    return@Button
+                }
+
+                coroutineScope.launch {
+                    isSearchingRoute = true
+                    routeSearchError = null
+                    routePath = null
+
+                    try {
+                        routePath = ApiClient.algorithmApiService.getRoutePath(
+                            routeId = route.id,
+                            origen = origin.id,
+                            destino = destination.id
+                        )
+                    } catch (e: Exception) {
+                        routeSearchError = "No se pudo calcular la ruta"
+                    } finally {
+                        isSearchingRoute = false
+                    }
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 24.dp)
         ) {
             Text(text = "Buscar")
         }
+
+        when {
+            isSearchingRoute -> {
+                Text(
+                    text = "Calculando ruta...",
+                    modifier = Modifier.padding(top = 16.dp)
+                )
+            }
+
+            routeSearchError != null -> {
+                Text(
+                    text = routeSearchError ?: "",
+                    modifier = Modifier.padding(top = 16.dp)
+                )
+            }
+
+            routePath != null && routePath!!.isEmpty() -> {
+                Text(
+                    text = "No se encontró una ruta entre las paradas seleccionadas",
+                    modifier = Modifier.padding(top = 16.dp)
+                )
+            }
+
+            routePath != null -> {
+                Text(
+                    text = "Ruta encontrada:",
+                    modifier = Modifier.padding(top = 16.dp)
+                )
+
+                routePath!!.forEach { stopId ->
+                    val stopName = routeStops
+                        .find { it.stop.id == stopId }
+                        ?.stop
+                        ?.nombre
+
+                    Text(
+                        text = stopName ?: "Parada ID: $stopId",
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+            }
+        }
+        }
     }
-}
