@@ -20,13 +20,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import com.smartroutegt.mobile.network.ApiClient
 import com.smartroutegt.mobile.network.DriverApiService
 import com.smartroutegt.mobile.network.DriverDto
+import com.smartroutegt.mobile.network.DriverRouteAssignmentDto
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.IOException
 
 @Composable
 fun DriverLicenseScreen(
-    onDriverValidated: (DriverDto) -> Unit
+    onDriverValidated: (
+        DriverDto,
+        DriverRouteAssignmentDto
+    ) -> Unit
 ) {
     var licencia by remember {
         mutableStateOf("")
@@ -98,9 +102,21 @@ fun DriverLicenseScreen(
                 if (!driver.activo) {
                     error = "Piloto inactivo o suspendido"
                 } else {
-                    onDriverValidated(driver)
-                }
-            } catch (exception: HttpException) {
+                    val assignment = driverApiService.getActiveAssignment(
+                        driver.id
+                    )
+
+                    if (assignment == null) {
+                        error = "No tienes una asignación activa"
+                    } else {
+                        onDriverValidated(
+                            driver,
+                            assignment
+                        )
+                    }
+            }
+        }    
+     catch (exception: HttpException) {
                 error = if (exception.code() == 404) {
                     "Piloto no encontrado"
                 } else {
