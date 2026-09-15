@@ -36,6 +36,8 @@ import com.smartroutegt.mobile.network.DriverApiService
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.IOException
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 @Composable
 fun DriverDashboardScreen(
@@ -223,6 +225,7 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp)
     ) {
         Text(
