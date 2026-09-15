@@ -56,4 +56,10 @@ class DriverApiService(
             velocidad = velocidad
         )
     }
+
+    suspend fun getRouteStops(
+        routeId: Long
+    ): List<RouteStopDto> {
+        return api.getRouteStops(routeId)
+    }
 }

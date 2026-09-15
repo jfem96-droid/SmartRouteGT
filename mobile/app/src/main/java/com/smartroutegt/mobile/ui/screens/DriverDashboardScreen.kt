@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.Button
 import android.Manifest
 import android.content.pm.PackageManager
@@ -55,14 +56,16 @@ fun DriverDashboardScreen(
         )
     }
 
-    val sancionesConfirmadas = 2
+    val sancionesConfirmadas = assignment.driver.sancionesConfirmadas
     var velocidadActual by remember { mutableStateOf(0f) }
-    val proximaParada = "Parada Central"
-    val paradas = listOf(
-    "Parada Central",
-    "Parada Norte",
-    "Parada Sur"
-)
+    val proximaParada = "No disponible"
+    var paradas by remember {
+        mutableStateOf(emptyList<String>())
+    }
+
+    var errorParadas by remember {
+        mutableStateOf<String?>(null)
+    }
     var estadoGps by remember { mutableStateOf("Permiso pendiente") }
     val alertaActual = "Sin alertas"
 
@@ -72,6 +75,20 @@ fun DriverDashboardScreen(
 
     val driverApiService = remember {
         DriverApiService(ApiClient.create())
+    }
+
+    LaunchedEffect(assignment.route.id) {
+        errorParadas = null
+
+        try {
+            paradas = driverApiService.getRouteStops(assignment.route.id)
+                .sortedBy { routeStop -> routeStop.orden }
+                .map { routeStop -> routeStop.stop.nombre }
+        } catch (exception: HttpException) {
+            errorParadas = "No se pudieron cargar las paradas"
+        } catch (exception: IOException) {
+            errorParadas = "No se pudo conectar con el servidor"
+        }
     }
 
     var iniciandoViaje by remember {
@@ -233,8 +250,20 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
 
         Text(text = "Paradas de la ruta:")
 
-        paradas.forEach { parada ->
-            Text(text = "• $parada")
+        when {
+            errorParadas != null -> {
+                Text(text = errorParadas!!)
+            }
+
+            paradas.isEmpty() -> {
+                Text(text = "No hay paradas disponibles")
+            }
+
+            else -> {
+                paradas.forEach { parada ->
+                    Text(text = "• $parada")
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
