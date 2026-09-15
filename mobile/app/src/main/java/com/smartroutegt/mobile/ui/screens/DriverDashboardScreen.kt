@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -41,6 +42,8 @@ fun DriverDashboardScreen(
 ) {
     val busAsignado = assignment.bus.codigo
     val rutaAsignada = assignment.route.nombre
+    val pilotoNombre = assignment.driver.nombre
+    val pilotoLicencia = assignment.driver.licencia
 
     var viajeActual by remember(initialTrip) {
         mutableStateOf(initialTrip)
@@ -220,9 +223,20 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
             .fillMaxSize()
             .padding(24.dp)
     ) {
-        Text(text = "Panel del piloto")
+        Text(
+            text = "Panel del piloto",
+            style = MaterialTheme.typography.headlineMedium
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
+
+        Text(text = "Piloto: $pilotoNombre")
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(text = "Licencia: $pilotoLicencia")
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         Text(text = "Bus asignado: $busAsignado")
 
