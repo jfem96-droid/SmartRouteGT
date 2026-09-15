@@ -24,6 +24,7 @@ import com.smartroutegt.mobile.ui.screens.RouteReportScreen
 import com.smartroutegt.mobile.ui.screens.DriverLicenseScreen
 import com.smartroutegt.mobile.network.DriverDto
 import com.smartroutegt.mobile.network.DriverRouteAssignmentDto
+import com.smartroutegt.mobile.network.TripDto
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,6 +44,10 @@ class MainActivity : ComponentActivity() {
 
                 var asignacionActual by remember {
                     mutableStateOf<DriverRouteAssignmentDto?>(null)
+                }
+
+                var viajeActual by remember {
+                    mutableStateOf<TripDto?>(null)
                 }
 
                 when (currentScreen) {
@@ -75,9 +80,10 @@ class MainActivity : ComponentActivity() {
 
                     "driverLicense" -> {
                         DriverLicenseScreen(
-                            onDriverValidated = { driver, assignment ->
+                            onDriverValidated = { driver, assignment, activeTrip ->
                                 driverActual = driver
                                 asignacionActual = assignment
+                                viajeActual = activeTrip
                                 currentScreen = "driver"
                             }
                         )

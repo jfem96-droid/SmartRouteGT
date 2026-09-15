@@ -21,6 +21,7 @@ import com.smartroutegt.mobile.network.ApiClient
 import com.smartroutegt.mobile.network.DriverApiService
 import com.smartroutegt.mobile.network.DriverDto
 import com.smartroutegt.mobile.network.DriverRouteAssignmentDto
+import com.smartroutegt.mobile.network.TripDto
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.IOException
@@ -29,7 +30,8 @@ import java.io.IOException
 fun DriverLicenseScreen(
     onDriverValidated: (
         DriverDto,
-        DriverRouteAssignmentDto
+        DriverRouteAssignmentDto,
+        TripDto?
     ) -> Unit
 ) {
     var licencia by remember {
@@ -109,9 +111,14 @@ fun DriverLicenseScreen(
                     if (assignment == null) {
                         error = "No tienes una asignación activa"
                     } else {
+                        val activeTrip = driverApiService.getActiveTrip(
+                            driver.id
+                        )
+
                         onDriverValidated(
                             driver,
-                            assignment
+                            assignment,
+                            activeTrip
                         )
                     }
             }
