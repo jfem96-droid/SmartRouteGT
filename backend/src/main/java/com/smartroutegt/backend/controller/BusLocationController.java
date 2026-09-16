@@ -1,92 +1,236 @@
 package com.smartroutegt.backend.controller;
 
-import com.smartroutegt.backend.entity.BusLocation;
-import com.smartroutegt.backend.entity.Trip;
-import com.smartroutegt.backend.repository.BusLocationRepository;
-import com.smartroutegt.backend.repository.TripRepository;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+import com.smartroutegt.backend.entity.BusLocation;
+import com.smartroutegt.backend.entity.RouteStop;
+import com.smartroutegt.backend.entity.Trip;
+import com.smartroutegt.backend.entity.Violation;
+import com.smartroutegt.backend.repository.BusLocationRepository;
+import com.smartroutegt.backend.repository.RouteStopRepository;
+import com.smartroutegt.backend.repository.StopVisitRepository;
+import com.smartroutegt.backend.repository.TripRepository;
+import com.smartroutegt.backend.repository.ViolationRepository;
+import com.smartroutegt.backend.service.StopVisitService;
 
 @RestController
 @RequestMapping("/api/locations")
 public class BusLocationController {
 
-    private final BusLocationRepository locationRepository;
-    private final TripRepository tripRepository;
+        private static final double LIMITE_VELOCIDAD = 60.0;
+        private static final long SEGUNDOS_EXCESO_PERMITIDOS = 10;
 
-    public BusLocationController(
-            BusLocationRepository locationRepository,
-            TripRepository tripRepository) {
+        private final BusLocationRepository locationRepository;
+        private final TripRepository tripRepository;
+        private final ViolationRepository violationRepository;
+        private final RouteStopRepository routeStopRepository;
+        private final StopVisitRepository stopVisitRepository;
+        private final StopVisitService stopVisitService;
 
-        this.locationRepository = locationRepository;
-        this.tripRepository = tripRepository;
-    }
+        public BusLocationController(
+                        BusLocationRepository locationRepository,
+                        TripRepository tripRepository,
+                        ViolationRepository violationRepository,
+                        RouteStopRepository routeStopRepository,
+                        StopVisitRepository stopVisitRepository,
+                        StopVisitService stopVisitService) {
 
-    @PostMapping
-    public ResponseEntity<?> registrarUbicacion(
-            @RequestParam Long tripId,
-            @RequestParam double latitud,
-            @RequestParam double longitud,
-            @RequestParam double velocidad) {
-
-        Trip trip = tripRepository.findById(tripId).orElse(null);
-
-        if (trip == null) {
-            return ResponseEntity.badRequest()
-                    .body("El viaje no existe");
+                this.locationRepository = locationRepository;
+                this.tripRepository = tripRepository;
+                this.violationRepository = violationRepository;
+                this.routeStopRepository = routeStopRepository;
+                this.stopVisitRepository = stopVisitRepository;
+                this.stopVisitService = stopVisitService;
         }
 
-        if (!trip.isActivo()) {
-            return ResponseEntity.badRequest()
-                    .body("El viaje ya está finalizado");
+        @PostMapping
+        public ResponseEntity<?> registrarUbicacion(
+                        @RequestParam Long tripId,
+                        @RequestParam double latitud,
+                        @RequestParam double longitud,
+                        @RequestParam double velocidad) {
+
+                Trip trip = tripRepository.findById(tripId).orElse(null);
+
+                if (trip == null) {
+                        return ResponseEntity.badRequest()
+                                        .body("El viaje no existe");
+                }
+
+                if (!trip.isActivo()) {
+                        return ResponseEntity.badRequest()
+                                        .body("El viaje ya está finalizado");
+                }
+
+                if (latitud < -90 || latitud > 90) {
+                        return ResponseEntity.badRequest()
+                                        .body("Latitud inválida");
+                }
+
+                if (longitud < -180 || longitud > 180) {
+                        return ResponseEntity.badRequest()
+                                        .body("Longitud inválida");
+                }
+
+                if (velocidad < 0) {
+                        return ResponseEntity.badRequest()
+                                        .body("La velocidad no puede ser negativa");
+                }
+
+                BusLocation location = new BusLocation(
+                                trip,
+                                trip.getBus(),
+                                latitud,
+                                longitud,
+                                velocidad);
+
+                BusLocation locationGuardada = locationRepository.save(location);
+
+                detectarExcesoVelocidad(
+                                trip,
+                                locationGuardada);
+                procesarParadas(
+                                trip,
+                                locationGuardada);
+
+                return ResponseEntity.ok(locationGuardada);
         }
 
-        if (latitud < -90 || latitud > 90) {
-            return ResponseEntity.badRequest()
-                    .body("Latitud inválida");
+        private void procesarParadas(
+                        Trip trip,
+                        BusLocation locationActual) {
+
+                List<RouteStop> paradasRuta = routeStopRepository
+                                .findByRouteIdOrderByOrdenAsc(
+                                                trip.getRoute().getId());
+
+                for (RouteStop routeStop : paradasRuta) {
+
+                        boolean paradaCumplida = stopVisitRepository
+                                        .existsByTripIdAndStopIdAndCumplidaTrue(
+                                                        trip.getId(),
+                                                        routeStop.getStop().getId());
+
+                        if (paradaCumplida) {
+                                continue;
+                        }
+
+                        stopVisitService.procesarUbicacion(
+                                        trip,
+                                        routeStop.getStop(),
+                                        locationActual.getLatitud(),
+                                        locationActual.getLongitud(),
+                                        locationActual.getFechaHora());
+
+                        break;
+                }
         }
 
-        if (longitud < -180 || longitud > 180) {
-            return ResponseEntity.badRequest()
-                    .body("Longitud inválida");
+        private void detectarExcesoVelocidad(
+                        Trip trip,
+                        BusLocation locationActual) {
+
+                if (locationActual.getVelocidad() <= LIMITE_VELOCIDAD) {
+                        return;
+                }
+
+                LocalDateTime inicioExceso;
+
+                Optional<BusLocation> ultimaUbicacionNormal = locationRepository
+                                .findFirstByTripIdAndVelocidadLessThanEqualOrderByFechaHoraDesc(
+                                                trip.getId(),
+                                                LIMITE_VELOCIDAD);
+
+                if (ultimaUbicacionNormal.isPresent()) {
+
+                        Optional<BusLocation> primeraUbicacionExceso = locationRepository
+                                        .findFirstByTripIdAndFechaHoraAfterOrderByFechaHoraAsc(
+                                                        trip.getId(),
+                                                        ultimaUbicacionNormal
+                                                                        .get()
+                                                                        .getFechaHora());
+
+                        if (primeraUbicacionExceso.isEmpty()) {
+                                return;
+                        }
+
+                        inicioExceso = primeraUbicacionExceso
+                                        .get()
+                                        .getFechaHora();
+
+                } else {
+
+                        Optional<BusLocation> primeraUbicacionViaje = locationRepository
+                                        .findFirstByTripIdOrderByFechaHoraAsc(
+                                                        trip.getId());
+
+                        if (primeraUbicacionViaje.isEmpty()) {
+                                return;
+                        }
+
+                        inicioExceso = primeraUbicacionViaje
+                                        .get()
+                                        .getFechaHora();
+                }
+
+                long segundosExceso = Duration.between(
+                                inicioExceso,
+                                locationActual.getFechaHora()).getSeconds();
+
+                if (segundosExceso < SEGUNDOS_EXCESO_PERMITIDOS) {
+                        return;
+                }
+
+                boolean yaExisteInfraccion = violationRepository
+                                .existsByTripIdAndTipoAndFechaHoraAfter(
+                                                trip.getId(),
+                                                "SPEEDING",
+                                                inicioExceso);
+
+                if (yaExisteInfraccion) {
+                        return;
+                }
+
+                Violation violation = new Violation(
+                                trip.getDriver(),
+                                trip.getBus(),
+                                trip,
+                                "SPEEDING",
+                                "Exceso de velocidad durante más de "
+                                                + SEGUNDOS_EXCESO_PERMITIDOS
+                                                + " segundos",
+                                locationActual.getVelocidad(),
+                                LIMITE_VELOCIDAD);
+
+                violationRepository.save(violation);
         }
 
-        if (velocidad < 0) {
-            return ResponseEntity.badRequest()
-                    .body("La velocidad no puede ser negativa");
+        @GetMapping("/trip/{tripId}")
+        public List<BusLocation> obtenerRecorrido(
+                        @PathVariable Long tripId) {
+
+                return locationRepository
+                                .findByTripIdOrderByFechaHoraAsc(tripId);
         }
 
-        BusLocation location = new BusLocation(
-                trip,
-                trip.getBus(),
-                latitud,
-                longitud,
-                velocidad
-        );
+        @GetMapping("/bus/{busId}/latest")
+        public ResponseEntity<?> obtenerUltimaUbicacion(
+                        @PathVariable Long busId) {
 
-        return ResponseEntity.ok(
-                locationRepository.save(location)
-        );
-    }
-
-    @GetMapping("/trip/{tripId}")
-    public List<BusLocation> obtenerRecorrido(
-            @PathVariable Long tripId) {
-
-        return locationRepository
-                .findByTripIdOrderByFechaHoraAsc(tripId);
-    }
-
-    @GetMapping("/bus/{busId}/latest")
-    public ResponseEntity<?> obtenerUltimaUbicacion(
-            @PathVariable Long busId) {
-
-        return locationRepository
-                .findFirstByBusIdOrderByFechaHoraDesc(busId)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
-    }
+                return locationRepository
+                                .findFirstByBusIdOrderByFechaHoraDesc(busId)
+                                .map(ResponseEntity::ok)
+                                .orElseGet(() -> ResponseEntity.notFound().build());
+        }
 }

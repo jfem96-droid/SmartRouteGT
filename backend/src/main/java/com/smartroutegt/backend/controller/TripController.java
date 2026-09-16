@@ -1,14 +1,24 @@
 package com.smartroutegt.backend.controller;
 
-import com.smartroutegt.backend.entity.DriverRouteAssignment;
-import com.smartroutegt.backend.entity.Trip;
-import com.smartroutegt.backend.repository.DriverRouteAssignmentRepository;
-import com.smartroutegt.backend.repository.TripRepository;
+import java.time.LocalDateTime;
+import java.util.List;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDateTime;
+import com.smartroutegt.backend.entity.DriverRouteAssignment;
+import com.smartroutegt.backend.entity.RouteStop;
+import com.smartroutegt.backend.entity.Trip;
+import com.smartroutegt.backend.repository.DriverRouteAssignmentRepository;
+import com.smartroutegt.backend.repository.RouteStopRepository;
+import com.smartroutegt.backend.repository.StopVisitRepository;
+import com.smartroutegt.backend.repository.TripRepository;
 
 @RestController
 @RequestMapping("/api/trips")
@@ -16,20 +26,25 @@ public class TripController {
 
     private final TripRepository tripRepository;
     private final DriverRouteAssignmentRepository assignmentRepository;
+    private final RouteStopRepository routeStopRepository;
+    private final StopVisitRepository stopVisitRepository;
 
     public TripController(
             TripRepository tripRepository,
-            DriverRouteAssignmentRepository assignmentRepository) {
+            DriverRouteAssignmentRepository assignmentRepository,
+            RouteStopRepository routeStopRepository,
+            StopVisitRepository stopVisitRepository) {
 
         this.tripRepository = tripRepository;
         this.assignmentRepository = assignmentRepository;
+        this.routeStopRepository = routeStopRepository;
+        this.stopVisitRepository = stopVisitRepository;
     }
 
     @PostMapping("/start")
     public ResponseEntity<?> iniciarViaje(@RequestParam Long assignmentId) {
 
-        DriverRouteAssignment assignment =
-                assignmentRepository.findById(assignmentId).orElse(null);
+        DriverRouteAssignment assignment = assignmentRepository.findById(assignmentId).orElse(null);
 
         if (assignment == null) {
             return ResponseEntity.badRequest()
@@ -56,17 +71,16 @@ public class TripController {
                     .body("La ruta está inactiva");
         }
         if (tripRepository.existsByDriverIdAndActivoTrue(
-        assignment.getDriver().getId())) {
+                assignment.getDriver().getId())) {
 
-    return ResponseEntity.badRequest()
-            .body("El piloto ya tiene un viaje activo");
-}
+            return ResponseEntity.badRequest()
+                    .body("El piloto ya tiene un viaje activo");
+        }
 
         Trip trip = new Trip(
                 assignment.getDriver(),
                 assignment.getBus(),
-                assignment.getRoute()
-        );
+                assignment.getRoute());
 
         trip.setFechaInicio(LocalDateTime.now());
         trip.setActivo(true);
@@ -75,26 +89,56 @@ public class TripController {
 
         return ResponseEntity.ok(viajeGuardado);
     }
+
     @PutMapping("/{id}/finish")
-public ResponseEntity<?> finalizarViaje(@PathVariable Long id) {
+    public ResponseEntity<?> finalizarViaje(@PathVariable Long id) {
 
-    Trip trip = tripRepository.findById(id).orElse(null);
+        Trip trip = tripRepository.findById(id).orElse(null);
 
-    if (trip == null) {
-        return ResponseEntity.badRequest()
-                .body("El viaje no existe");
+        if (trip == null) {
+            return ResponseEntity.badRequest()
+                    .body("El viaje no existe");
+        }
+
+        if (!trip.isActivo()) {
+            return ResponseEntity.badRequest()
+                    .body("El viaje ya está finalizado");
+        }
+
+        trip.setFechaFin(LocalDateTime.now());
+        trip.setActivo(false);
+
+        Trip viajeFinalizado = tripRepository.save(trip);
+
+        return ResponseEntity.ok(viajeFinalizado);
     }
 
-    if (!trip.isActivo()) {
-        return ResponseEntity.badRequest()
-                .body("El viaje ya está finalizado");
+    @GetMapping("/{tripId}/next-stop")
+    public ResponseEntity<?> obtenerProximaParada(
+            @PathVariable Long tripId) {
+
+        Trip trip = tripRepository.findById(tripId).orElse(null);
+
+        if (trip == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        List<RouteStop> paradasRuta = routeStopRepository.findByRouteIdOrderByOrdenAsc(
+                trip.getRoute().getId());
+
+        for (RouteStop routeStop : paradasRuta) {
+
+            boolean cumplida = stopVisitRepository
+                    .existsByTripIdAndStopIdAndCumplidaTrue(
+                            tripId,
+                            routeStop.getStop().getId());
+
+            if (!cumplida) {
+                return ResponseEntity.ok(routeStop);
+            }
+        }
+
+        return ResponseEntity.ok(
+                "No hay paradas pendientes");
     }
-
-    trip.setFechaFin(LocalDateTime.now());
-    trip.setActivo(false);
-
-    Trip viajeFinalizado = tripRepository.save(trip);
-
-    return ResponseEntity.ok(viajeFinalizado);
-}
 }
