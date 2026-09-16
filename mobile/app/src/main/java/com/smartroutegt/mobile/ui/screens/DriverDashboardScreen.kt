@@ -277,24 +277,52 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        Text(text = "Próxima parada: $proximaParada")
+        Card(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = "Ruta y paradas",
+                    style = MaterialTheme.typography.titleMedium
+                )
 
-        Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-        Text(text = "Paradas de la ruta:")
+                Text(
+                    text = "Próxima parada",
+                    style = MaterialTheme.typography.labelLarge
+                ) 
 
-        when {
-            errorParadas != null -> {
-                Text(text = errorParadas!!)
-            }
+                Text(
+                    text = proximaParada,
+                    style = MaterialTheme.typography.bodyLarge
+                )
 
-            paradas.isEmpty() -> {
-                Text(text = "No hay paradas disponibles")
-            }
+                Spacer(modifier = Modifier.height(16.dp))
 
-            else -> {
-                paradas.forEach { parada ->
-                    Text(text = "• $parada")
+                Text(
+                    text = "Paradas de la ruta",
+                    style = MaterialTheme.typography.labelLarge
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                when {
+                    errorParadas != null -> {
+                        Text(text = errorParadas!!)
+                    }
+
+                    paradas.isEmpty() -> {
+                        Text(text = "No hay paradas disponibles")
+                    }
+
+                    else -> {
+                        paradas.forEach { parada ->
+                            Text(text = "• $parada")
+                        }
+                    }
                 }
             }
         }
