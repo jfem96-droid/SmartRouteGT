@@ -286,3 +286,99 @@ fetch("http://localhost:8080/api/violations")
         console.error("Error al conectar con alertas:", error);
         mostrarError("No se pudo conectar con el servicio de alertas.");
     });
+
+
+    // MONITOREO DE BUSES
+const tablaMonitoreoBuses = document.getElementById("tablaMonitoreoBuses");
+
+fetch("http://localhost:8080/api/buses")
+    .then(response => {
+        if (!response.ok) {
+            throw new Error("No se pudo obtener la información de buses");
+        }
+
+        return response.json();
+    })
+    .then(buses => {
+        tablaMonitoreoBuses.innerHTML = "";
+
+        if (buses.length === 0) {
+            tablaMonitoreoBuses.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center text-muted">
+                        No hay buses registrados.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        buses.forEach(bus => {
+            fetch(`http://localhost:8080/api/locations/bus/${bus.id}/latest`)
+                .then(response => {
+                    if (response.status === 404) {
+                        return null;
+                    }
+
+                    if (!response.ok) {
+                        throw new Error(
+                            `No se pudo obtener la ubicación del bus ${bus.codigo}`
+                        );
+                    }
+
+                    return response.json();
+                })
+                .then(ubicacion => {
+                    const fila = document.createElement("tr");
+
+                    const estado = bus.activa
+                        ? '<span class="badge bg-success">Activo</span>'
+                        : '<span class="badge bg-secondary">Inactivo</span>';
+
+                    const velocidad = ubicacion
+                        ? `${ubicacion.velocidad} km/h`
+                        : "Sin registro";
+
+                    const latitud = ubicacion
+                        ? ubicacion.latitud
+                        : "Sin registro";
+
+                    const longitud = ubicacion
+                        ? ubicacion.longitud
+                        : "Sin registro";
+
+                    const fechaHora = ubicacion
+                        ? new Date(ubicacion.fechaHora).toLocaleString()
+                        : "Sin ubicación registrada";
+
+                    fila.innerHTML = `
+                        <td>${bus.codigo}</td>
+                        <td>${bus.placa}</td>
+                        <td>${estado}</td>
+                        <td>${velocidad}</td>
+                        <td>${latitud}</td>
+                        <td>${longitud}</td>
+                        <td>${fechaHora}</td>
+                    `;
+
+                    tablaMonitoreoBuses.appendChild(fila);
+                })
+                .catch(error => {
+                    console.error(
+                        `Error al consultar ubicación del bus ${bus.codigo}:`,
+                        error
+                    );
+                });
+        });
+    })
+    .catch(error => {
+        console.error("Error al cargar monitoreo de buses:", error);
+
+        tablaMonitoreoBuses.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center text-danger">
+                    No se pudo cargar el monitoreo de buses.
+                </td>
+            </tr>
+        `;
+    });
