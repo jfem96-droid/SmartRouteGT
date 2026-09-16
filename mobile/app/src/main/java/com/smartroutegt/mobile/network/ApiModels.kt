@@ -67,3 +67,14 @@ data class RouteStopDto(
     val stop: StopDto,
     val orden: Int
 )
+
+data class NextStopDto(
+    val tripId: Long,
+    val stopId: Long,
+    val parada: String,
+    val orden: Int,
+    val latitud: Double,
+    val longitud: Double,
+    val radioPermitido: Double,
+    val distanciaMetros: Double?
+)
