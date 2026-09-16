@@ -21,6 +21,10 @@ import com.smartroutegt.mobile.ui.screens.EtaScreen
 import com.smartroutegt.mobile.ui.screens.SosScreen
 import com.smartroutegt.mobile.ui.screens.DriverReportScreen
 import com.smartroutegt.mobile.ui.screens.RouteReportScreen
+import com.smartroutegt.mobile.ui.screens.DriverLicenseScreen
+import com.smartroutegt.mobile.network.DriverDto
+import com.smartroutegt.mobile.network.DriverRouteAssignmentDto
+import com.smartroutegt.mobile.network.TripDto
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,6 +36,18 @@ class MainActivity : ComponentActivity() {
 
                 var currentScreen by remember {
                     mutableStateOf("welcome")
+                }
+
+                var driverActual by remember {
+                    mutableStateOf<DriverDto?>(null)
+                }
+
+                var asignacionActual by remember {
+                    mutableStateOf<DriverRouteAssignmentDto?>(null)
+                }
+
+                var viajeActual by remember {
+                    mutableStateOf<TripDto?>(null)
                 }
 
                 when (currentScreen) {
@@ -57,13 +73,31 @@ class MainActivity : ComponentActivity() {
                                 currentScreen = "passenger"
                             },
                             onDriverSelected = {
+                                currentScreen = "driverLicense"
+                            }
+                        )
+                    }
+
+                    "driverLicense" -> {
+                        DriverLicenseScreen(
+                            onDriverValidated = { driver, assignment, activeTrip ->
+                                driverActual = driver
+                                asignacionActual = assignment
+                                viajeActual = activeTrip
                                 currentScreen = "driver"
                             }
                         )
                     }
 
                     "driver" -> {
-                        DriverDashboardScreen()
+                        val assignment = asignacionActual
+
+                        if (assignment != null) {
+                            DriverDashboardScreen(
+                                assignment = assignment,
+                                initialTrip = viajeActual
+                            )
+                        }
                     }
 
                     "passenger" -> {
