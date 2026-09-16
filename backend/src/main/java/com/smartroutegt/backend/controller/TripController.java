@@ -1,7 +1,9 @@
 package com.smartroutegt.backend.controller;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,13 +14,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.smartroutegt.backend.entity.BusLocation;
 import com.smartroutegt.backend.entity.DriverRouteAssignment;
 import com.smartroutegt.backend.entity.RouteStop;
 import com.smartroutegt.backend.entity.Trip;
+import com.smartroutegt.backend.repository.BusLocationRepository;
 import com.smartroutegt.backend.repository.DriverRouteAssignmentRepository;
 import com.smartroutegt.backend.repository.RouteStopRepository;
 import com.smartroutegt.backend.repository.StopVisitRepository;
 import com.smartroutegt.backend.repository.TripRepository;
+import com.smartroutegt.backend.service.StopVisitService;
 
 @RestController
 @RequestMapping("/api/trips")
@@ -28,17 +33,23 @@ public class TripController {
     private final DriverRouteAssignmentRepository assignmentRepository;
     private final RouteStopRepository routeStopRepository;
     private final StopVisitRepository stopVisitRepository;
+    private final BusLocationRepository locationRepository;
+    private final StopVisitService stopVisitService;
 
     public TripController(
             TripRepository tripRepository,
             DriverRouteAssignmentRepository assignmentRepository,
             RouteStopRepository routeStopRepository,
-            StopVisitRepository stopVisitRepository) {
+            StopVisitRepository stopVisitRepository,
+            BusLocationRepository locationRepository,
+            StopVisitService stopVisitService) {
 
         this.tripRepository = tripRepository;
         this.assignmentRepository = assignmentRepository;
         this.routeStopRepository = routeStopRepository;
         this.stopVisitRepository = stopVisitRepository;
+        this.locationRepository = locationRepository;
+        this.stopVisitService = stopVisitService;
     }
 
     @PostMapping("/start")
@@ -132,8 +143,9 @@ public class TripController {
             return ResponseEntity.notFound().build();
         }
 
-        List<RouteStop> paradasRuta = routeStopRepository.findByRouteIdOrderByOrdenAsc(
-                trip.getRoute().getId());
+        List<RouteStop> paradasRuta = routeStopRepository
+                .findByRouteIdOrderByOrdenAsc(
+                        trip.getRoute().getId());
 
         for (RouteStop routeStop : paradasRuta) {
 
@@ -143,7 +155,40 @@ public class TripController {
                             routeStop.getStop().getId());
 
             if (!cumplida) {
-                return ResponseEntity.ok(routeStop);
+
+                Map<String, Object> respuesta = new LinkedHashMap<>();
+
+                respuesta.put("tripId", trip.getId());
+                respuesta.put("stopId", routeStop.getStop().getId());
+                respuesta.put("parada", routeStop.getStop().getNombre());
+                respuesta.put("orden", routeStop.getOrden());
+                respuesta.put("latitud", routeStop.getStop().getLatitud());
+                respuesta.put("longitud", routeStop.getStop().getLongitud());
+                respuesta.put(
+                        "radioPermitido",
+                        routeStop.getStop().getRadioPermitido());
+
+                BusLocation ultimaUbicacion = locationRepository
+                        .findFirstByBusIdOrderByFechaHoraDesc(
+                                trip.getBus().getId())
+                        .orElse(null);
+
+                if (ultimaUbicacion != null) {
+
+                    double distanciaMetros = stopVisitService
+                            .calcularDistanciaHaversine(
+                                    ultimaUbicacion.getLatitud(),
+                                    ultimaUbicacion.getLongitud(),
+                                    routeStop.getStop().getLatitud(),
+                                    routeStop.getStop().getLongitud());
+
+                    respuesta.put("distanciaMetros", distanciaMetros);
+
+                } else {
+                    respuesta.put("distanciaMetros", null);
+                }
+
+                return ResponseEntity.ok(respuesta);
             }
         }
 

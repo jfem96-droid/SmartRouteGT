@@ -188,7 +188,7 @@ public class BusLocationController {
                                 inicioExceso,
                                 locationActual.getFechaHora()).getSeconds();
 
-                if (segundosExceso < SEGUNDOS_EXCESO_PERMITIDOS) {
+                if (segundosExceso <= SEGUNDOS_EXCESO_PERMITIDOS) {
                         return;
                 }
 
