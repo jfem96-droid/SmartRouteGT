@@ -423,10 +423,21 @@ function cargarBusesEnMapa() {
         return;
     }
 
-    const marcador = L.marker([
+   let marcador = marcadoresBuses.get(bus.id);
+
+if (marcador) {
+    marcador.setLatLng([
+        ubicacion.latitud,
+        ubicacion.longitud
+    ]);
+} else {
+    marcador = L.marker([
         ubicacion.latitud,
         ubicacion.longitud
     ]).addTo(mapaBuses);
+
+    marcadoresBuses.set(bus.id, marcador);
+}
 
     marcador.bindPopup(`
         <strong>${bus.codigo}</strong><br>
@@ -436,7 +447,6 @@ function cargarBusesEnMapa() {
         ${new Date(ubicacion.fechaHora).toLocaleString()}
     `);
 
-    marcadoresBuses.set(bus.id, marcador);
 })
             .catch(error => {
                 console.error(
@@ -452,3 +462,5 @@ function cargarBusesEnMapa() {
 }
 
 cargarBusesEnMapa();
+
+setInterval(cargarBusesEnMapa, 10000);
