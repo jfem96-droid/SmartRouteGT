@@ -28,21 +28,197 @@ fetch("http://localhost:8080/api/buses")
     mostrarError("No se pudo conectar con el servicio de buses.");
 });
 
-    fetch("http://localhost:8080/api/routes")
-    .then(response => {
-        if (!response.ok) {
-            throw new Error("No se pudo obtener la información de rutas");
-        }
+    let rutaEditandoId = null;
 
-        return response.json();
-    })
-    .then(rutas => {
-        console.log("Rutas recibidas:", rutas);
-    })
-    .catch(error => {
-    console.error("Error al conectar con rutas:", error);
-    mostrarError("No se pudo conectar con el servicio de rutas.");
+function cargarRutas() {
+    fetch("http://localhost:8080/api/routes")
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("No se pudo obtener la información de rutas");
+            }
+
+            return response.json();
+        })
+        .then(rutas => {
+            mostrarRutas(rutas);
+        })
+        .catch(error => {
+            console.error("Error al cargar rutas:", error);
+
+            const tablaRutas = document.getElementById("tablaRutas");
+
+            tablaRutas.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center text-danger">
+                        No se pudieron cargar las rutas.
+                    </td>
+                </tr>
+            `;
+        });
+}
+
+function mostrarRutas(rutas) {
+    const tablaRutas = document.getElementById("tablaRutas");
+
+    tablaRutas.innerHTML = "";
+
+    if (rutas.length === 0) {
+        tablaRutas.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center text-muted">
+                    No hay rutas registradas.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    rutas.forEach(ruta => {
+        const fila = document.createElement("tr");
+
+        fila.innerHTML = `
+            <td>${ruta.id}</td>
+            <td>${ruta.codigo}</td>
+            <td>${ruta.nombre}</td>
+            <td>
+                ${ruta.activa
+                    ? '<span class="badge bg-success">Activa</span>'
+                    : '<span class="badge bg-secondary">Inactiva</span>'
+                }
+            </td>
+            <td>
+                <button
+                    class="btn btn-sm btn-secondary me-1"
+                    onclick='editarRuta(${JSON.stringify(ruta)})'>
+                    Editar
+                </button>
+
+                ${
+                    ruta.activa
+                        ? `<button
+                            class="btn btn-sm btn-danger"
+                            onclick="cambiarEstadoRuta(${ruta.id}, false)">
+                            Desactivar
+                           </button>`
+                        : `<button
+                            class="btn btn-sm btn-success"
+                            onclick="cambiarEstadoRuta(${ruta.id}, true)">
+                            Activar
+                           </button>`
+                }
+            </td>
+        `;
+
+        tablaRutas.appendChild(fila);
+    });
+}
+
+function editarRuta(ruta) {
+    rutaEditandoId = ruta.id;
+
+    document.getElementById("modalRutaLabel").textContent = "Editar ruta";
+    document.getElementById("codigoRuta").value = ruta.codigo;
+    document.getElementById("nombreRuta").value = ruta.nombre;
+    document.getElementById("activaRuta").checked = ruta.activa;
+    document.getElementById("btnGuardarRuta").textContent = "Actualizar";
+
+    const modal = new bootstrap.Modal(document.getElementById("modalRuta"));
+    modal.show();
+}
+
+document.getElementById("btnNuevaRuta").addEventListener("click", () => {
+    rutaEditandoId = null;
+
+    document.getElementById("modalRutaLabel").textContent = "Nueva ruta";
+    document.getElementById("btnGuardarRuta").textContent = "Guardar";
+    document.getElementById("formRuta").reset();
+    document.getElementById("activaRuta").checked = true;
 });
+
+document.getElementById("formRuta").addEventListener("submit", event => {
+    event.preventDefault();
+
+    const codigo = document.getElementById("codigoRuta").value.trim();
+    const nombre = document.getElementById("nombreRuta").value.trim();
+    const activa = document.getElementById("activaRuta").checked;
+
+    if (!codigo || !nombre) {
+        alert("El código y el nombre son obligatorios.");
+        return;
+    }
+
+    const ruta = {
+        codigo: codigo,
+        nombre: nombre,
+        activa: activa
+    };
+
+    const url = rutaEditandoId === null
+        ? "http://localhost:8080/api/routes"
+        : `http://localhost:8080/api/routes/${rutaEditandoId}`;
+
+    const metodo = rutaEditandoId === null ? "POST" : "PUT";
+
+    fetch(url, {
+        method: metodo,
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(ruta)
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("No se pudo guardar la ruta");
+            }
+
+            return response.json();
+        })
+        .then(() => {
+            const modalElement = document.getElementById("modalRuta");
+            const modal = bootstrap.Modal.getInstance(modalElement);
+
+            if (modal) {
+                modal.hide();
+            }
+
+            document.getElementById("formRuta").reset();
+            rutaEditandoId = null;
+
+            cargarRutas();
+        })
+        .catch(error => {
+            console.error("Error al guardar ruta:", error);
+            alert("No se pudo guardar la ruta.");
+        });
+});
+
+function cambiarEstadoRuta(id, activar) {
+    const url = activar
+        ? `http://localhost:8080/api/routes/${id}/activar`
+        : `http://localhost:8080/api/routes/${id}`;
+
+    const metodo = activar ? "PUT" : "DELETE";
+
+    fetch(url, {
+        method: metodo
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("No se pudo cambiar el estado de la ruta");
+            }
+
+            return response.text();
+        })
+        .then(() => {
+            cargarRutas();
+        })
+        .catch(error => {
+            console.error("Error al cambiar estado:", error);
+            alert("No se pudo cambiar el estado de la ruta.");
+        });
+}
+
+cargarRutas();
 
     // PILOTOS
 fetch("http://localhost:8080/api/drivers")
