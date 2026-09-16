@@ -38,6 +38,7 @@ import retrofit2.HttpException
 import java.io.IOException
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import com.smartroutegt.mobile.network.RouteStopDto
 
 @Composable
 fun DriverDashboardScreen(
@@ -67,8 +68,8 @@ fun DriverDashboardScreen(
     var velocidadActual by remember { mutableStateOf(0f) }
     val proximaParada = "No disponible"
     var paradas by remember {
-        mutableStateOf(emptyList<String>())
-    }
+    mutableStateOf(emptyList<RouteStopDto>())
+}
 
     var errorParadas by remember {
         mutableStateOf<String?>(null)
@@ -90,7 +91,6 @@ fun DriverDashboardScreen(
         try {
             paradas = driverApiService.getRouteStops(assignment.route.id)
                 .sortedBy { routeStop -> routeStop.orden }
-                .map { routeStop -> routeStop.stop.nombre }
         } catch (exception: HttpException) {
             errorParadas = "No se pudieron cargar las paradas"
         } catch (exception: IOException) {
@@ -319,8 +319,8 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
                     }
 
                     else -> {
-                        paradas.forEach { parada ->
-                            Text(text = "• $parada")
+                        paradas.forEach { routeStop ->
+                            Text(text = "• ${routeStop.stop.nombre}")
                         }
                     }
                 }
