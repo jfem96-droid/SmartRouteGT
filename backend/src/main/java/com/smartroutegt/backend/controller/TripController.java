@@ -182,7 +182,9 @@ public class TripController {
                                     routeStop.getStop().getLatitud(),
                                     routeStop.getStop().getLongitud());
 
-                    respuesta.put("distanciaMetros", distanciaMetros);
+                    respuesta.put(
+                            "distanciaMetros",
+                            Math.round(distanciaMetros * 100.0) / 100.0);
 
                 } else {
                     respuesta.put("distanciaMetros", null);
