@@ -39,6 +39,11 @@ import java.io.IOException
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import com.smartroutegt.mobile.network.RouteStopDto
+import androidx.compose.ui.viewinterop.AndroidView
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
 
 @Composable
 fun DriverDashboardScreen(
@@ -68,8 +73,8 @@ fun DriverDashboardScreen(
     var velocidadActual by remember { mutableStateOf(0f) }
     val proximaParada = "No disponible"
     var paradas by remember {
-    mutableStateOf(emptyList<RouteStopDto>())
-}
+        mutableStateOf(emptyList<RouteStopDto>())
+    }
 
     var errorParadas by remember {
         mutableStateOf<String?>(null)
@@ -324,6 +329,69 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
                         }
                     }
                 }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = "Mapa de la ruta",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                AndroidView(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp),
+                        factory = { mapContext ->
+                        MapView(mapContext).apply {
+                            setTileSource(TileSourceFactory.MAPNIK)
+                            setMultiTouchControls(true)
+                            controller.setZoom(14.0)
+                        }
+                    },
+                    update = { mapView ->
+                        mapView.overlays.removeAll { overlay ->
+                            overlay is Marker
+                        }
+
+                        paradas.forEach { routeStop ->
+                            val marcadorParada = Marker(mapView).apply {
+                                position = GeoPoint(
+                                    routeStop.stop.latitud,
+                                    routeStop.stop.longitud
+                                )
+                                title = routeStop.stop.nombre
+                                snippet = "Parada ${routeStop.orden}"
+                                setAnchor(
+                                    Marker.ANCHOR_CENTER,
+                                    Marker.ANCHOR_BOTTOM
+                                )
+                            }
+
+                            mapView.overlays.add(marcadorParada)
+                        }
+
+                        paradas.firstOrNull()?.let { primeraParada ->
+                            mapView.controller.setCenter(
+                                GeoPoint(
+                                    primeraParada.stop.latitud,
+                                    primeraParada.stop.longitud
+                                )
+                            )
+                        }
+
+                        mapView.invalidate()
+                    }
+                )
             }
         }
 
