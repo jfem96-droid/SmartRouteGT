@@ -50,6 +50,7 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.play.services.location)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.osmdroid)
 
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
