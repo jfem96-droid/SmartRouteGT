@@ -277,10 +277,6 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        Text(text = "Velocidad actual: $velocidadActual km/h")
-
-        Spacer(modifier = Modifier.height(12.dp))
-
         Text(text = "Próxima parada: $proximaParada")
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -305,47 +301,76 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        Text(text = "Estado GPS: $estadoGps")
-
-        Text(
-            text = if (latitud != null && longitud != null) {
-                 "Ubicación: $latitud, $longitud"
-            } else {
-                "Ubicación: no disponible"
-            }
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Button(
-            onClick = {
-                val permisoPreciso = ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                 )
-
-                val permisoAproximado = ContextCompat.checkSelfPermission(
-                     context,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
+        Card(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = "GPS y ubicación",
+                    style = MaterialTheme.typography.titleMedium
                 )
 
-                if (
-                    permisoPreciso == PackageManager.PERMISSION_GRANTED ||
-                    permisoAproximado == PackageManager.PERMISSION_GRANTED
-                ) {
-                    obtenerUbicacion()
-                } else {
-                    permisoUbicacionLauncher.launch(
-                        arrayOf(
-                            Manifest.permission.ACCESS_FINE_LOCATION,
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "Velocidad actual",
+                    style = MaterialTheme.typography.labelLarge
+                )
+
+                Text(
+                    text = "$velocidadActual km/h",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(text = "Estado GPS: $estadoGps")
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = if (latitud != null && longitud != null) {
+                        "Ubicación: $latitud, $longitud"
+                    } else {
+                        "Ubicación: no disponible"
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = {
+                        val permisoPreciso = ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.ACCESS_FINE_LOCATION
+                        )
+
+                        val permisoAproximado = ContextCompat.checkSelfPermission(
+                            context,
                             Manifest.permission.ACCESS_COARSE_LOCATION
-                    )
-                )
+                        )
+
+                        if (
+                            permisoPreciso == PackageManager.PERMISSION_GRANTED ||
+                            permisoAproximado == PackageManager.PERMISSION_GRANTED
+                        ) {
+                            obtenerUbicacion()
+                        } else {
+                            permisoUbicacionLauncher.launch(
+                                arrayOf(
+                                    Manifest.permission.ACCESS_FINE_LOCATION,
+                                    Manifest.permission.ACCESS_COARSE_LOCATION
+                                )
+                            )
+                        }
+                    }
+                ) {
+                    Text(text = "Obtener ubicación")
+                }
             }
         }
-    ) {
-        Text(text = "Obtener ubicación")
-    }
 
         Spacer(modifier = Modifier.height(12.dp))
 
