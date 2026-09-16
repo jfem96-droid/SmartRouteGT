@@ -6,6 +6,7 @@ import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 import retrofit2.Response
+import okhttp3.ResponseBody
 
 interface SmartRouteApi {
 
@@ -46,4 +47,9 @@ interface SmartRouteApi {
     suspend fun getRouteStops(
         @Query("routeId") routeId: Long
     ): List<RouteStopDto>
+
+    @GET("api/trips/{tripId}/next-stop")
+    suspend fun getNextStop(
+        @Path("tripId") tripId: Long
+    ): Response<ResponseBody>
 }
