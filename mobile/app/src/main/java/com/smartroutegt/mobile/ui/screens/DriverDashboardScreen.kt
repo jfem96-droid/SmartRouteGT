@@ -406,81 +406,102 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Button(
-            onClick = {
-            coroutineScope.launch {
-            iniciandoViaje = true
-            errorViaje = null
-
-            try {
-                val nuevoViaje = driverApiService.startTrip(
-                    assignment.id
+        Card(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = "Control del viaje",
+                    style = MaterialTheme.typography.titleMedium
                 )
 
-                viajeActual = nuevoViaje
-                estadoViaje = "En curso"
-            } catch (exception: HttpException) {
-                errorViaje = "No se pudo iniciar el viaje"
-            } catch (exception: IOException) {
-                errorViaje = "No se pudo conectar con el servidor"
-            } finally {
-                iniciandoViaje = false
-            }
-        }
-    },
-    enabled = viajeActual == null && !iniciandoViaje
-) {
-    Text(
-        text = if (iniciandoViaje) {
-            "Iniciando..."
-        } else {
-            "Iniciar viaje"
-        }
-    )
-}
+                Spacer(modifier = Modifier.height(12.dp))
 
-if (errorViaje != null) {
-    Text(
-        text = errorViaje!!,
-        modifier = Modifier.padding(top = 8.dp)
-    )
-}
+                Text(text = "Estado: $estadoViaje")
 
-Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-        Button(
-            onClick = {
-                val tripId = viajeActual?.id
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            iniciandoViaje = true
+                            errorViaje = null
 
-                if (tripId != null) {
-                    coroutineScope.launch {
-                    finalizandoViaje = true
-                    errorViaje = null
+                            try {
+                                val nuevoViaje = driverApiService.startTrip(
+                                    assignment.id
+                                )
 
-                    try {
-                        driverApiService.finishTrip(tripId)
+                                viajeActual = nuevoViaje
+                                estadoViaje = "En curso"
+                            } catch (exception: HttpException) {
+                                errorViaje = "No se pudo iniciar el viaje"
+                            } catch (exception: IOException) {
+                                errorViaje = "No se pudo conectar con el servidor"
+                            } finally {
+                                iniciandoViaje = false
+                            }
+                        }
+                    },
+                    enabled = viajeActual == null && !iniciandoViaje,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = if (iniciandoViaje) {
+                            "Iniciando..."
+                        } else {
+                            "Iniciar viaje"
+                        }
+                    )
+                }
 
-                        viajeActual = null
-                        estadoViaje = "Finalizado"
-                    } catch (exception: HttpException) {
-                        errorViaje = "No se pudo finalizar el viaje"
-                    } catch (exception: IOException) {
-                        errorViaje = "No se pudo conectar con el servidor"
-                    } finally {
-                        finalizandoViaje = false
-                    }
+                if (errorViaje != null) {
+                    Text(
+                        text = errorViaje!!,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Button(
+                    onClick = {
+                        val tripId = viajeActual?.id
+
+                        if (tripId != null) {
+                            coroutineScope.launch {
+                                finalizandoViaje = true
+                                errorViaje = null
+
+                                try {
+                                    driverApiService.finishTrip(tripId)
+
+                                    viajeActual = null
+                                    estadoViaje = "Finalizado"
+                                } catch (exception: HttpException) {
+                                    errorViaje = "No se pudo finalizar el viaje"
+                                } catch (exception: IOException) {
+                                    errorViaje = "No se pudo conectar con el servidor"
+                                } finally {
+                                    finalizandoViaje = false
+                                }
+                            }
+                        }
+                    },
+                    enabled = viajeActual != null && !finalizandoViaje,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = if (finalizandoViaje) {
+                            "Finalizando..."
+                        } else {
+                            "Finalizar viaje"
+                        }
+                    )
                 }
             }
-        },
-        enabled = viajeActual != null && !finalizandoViaje
-    ) {
-        Text(
-            text = if (finalizandoViaje) {
-                "Finalizando..."
-            } else {
-                "Finalizar viaje"
-            }
-        )
-    }
+        }
     }
 }
