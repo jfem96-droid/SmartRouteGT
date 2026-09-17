@@ -380,6 +380,26 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
                             mapView.overlays.add(marcadorParada)
                         }
 
+                        val latitudActual = latitud
+                        val longitudActual = longitud
+
+                        if (latitudActual != null && longitudActual != null) {
+                            val marcadorBus = Marker(mapView).apply {
+                                position = GeoPoint(
+                                    latitudActual,
+                                    longitudActual
+                                )
+                                title = "Ubicación actual del bus"
+                                snippet = "Piloto: $pilotoNombre"
+                                setAnchor(
+                                    Marker.ANCHOR_CENTER,
+                                    Marker.ANCHOR_BOTTOM
+                                )
+                            }
+
+                            mapView.overlays.add(marcadorBus)
+                        }
+
                         paradas.firstOrNull()?.let { primeraParada ->
                             mapView.controller.setCenter(
                                 GeoPoint(
