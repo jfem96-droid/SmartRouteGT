@@ -27,6 +27,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import com.smartroutegt.mobile.data.remote.ApiClient
 import com.google.gson.Gson
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 @RequiresPermission(
     anyOf = [
@@ -89,6 +91,7 @@ fun NearbyBusesScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp)
     ) {
 
@@ -167,6 +170,15 @@ fun NearbyBusesScreen(
         if (passengerLatitude != null && passengerLongitude != null) {
             Text(
                 text = "Ubicación obtenida: $passengerLatitude, $passengerLongitude",
+                modifier = Modifier.padding(top = 16.dp)
+            )
+        }
+
+        if (passengerLatitude != null && passengerLongitude != null) {
+            NearbyBusMap(
+                passengerLatitude = passengerLatitude!!,
+                passengerLongitude = passengerLongitude!!,
+                nearestBus = nearestBus,
                 modifier = Modifier.padding(top = 16.dp)
             )
         }
