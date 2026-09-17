@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.smartroutegt.mobile.data.remote.BusLocationDto
+import com.smartroutegt.mobile.data.remote.BusMonitoringDto
 import org.maplibre.android.MapLibre
 import org.maplibre.android.annotations.MarkerOptions
 import org.maplibre.android.camera.CameraPosition
@@ -21,6 +22,7 @@ fun NearbyBusMap(
     passengerLatitude: Double,
     passengerLongitude: Double,
     nearestBus: BusLocationDto?,
+    busesWithLocation: List<BusMonitoringDto>,
     modifier: Modifier = Modifier
 ) {
     AndroidView(
@@ -74,18 +76,51 @@ fun NearbyBusMap(
                         .snippet("Pasajero")
                 )
 
-                nearestBus?.let { busLocation ->
-                    map.addMarker(
-                        MarkerOptions()
-                            .position(
-                                LatLng(
-                                    busLocation.latitud,
-                                    busLocation.longitud
+                busesWithLocation.forEach { bus ->
+                    val latitude = bus.latitud
+                    val longitude = bus.longitud
+
+                    if (latitude != null && longitude != null) {
+                        val isNearestBus = nearestBus?.bus?.id == bus.busId
+
+                        map.addMarker(
+                            MarkerOptions()
+                                .position(
+                                    LatLng(
+                                        latitude,
+                                        longitude
+                                    )
                                 )
-                            )
-                            .title("Bus ${busLocation.bus.codigo}")
-                            .snippet("Bus cercano")
-                    )
+                                .title("Bus ${bus.codigo}")
+                                .snippet(
+                                    if (isNearestBus) {
+                                        "Bus cercano"
+                                    } else {
+                                        "Bus con ubicación"
+                                    }
+                                )
+                        )
+                    }
+                }
+
+                nearestBus?.let { busLocation ->
+                    val alreadyShown = busesWithLocation.any { bus ->
+                        bus.busId == busLocation.bus.id
+                    }
+
+                    if (!alreadyShown) {
+                        map.addMarker(
+                            MarkerOptions()
+                                .position(
+                                    LatLng(
+                                        busLocation.latitud,
+                                        busLocation.longitud
+                                    )
+                                )
+                                .title("Bus ${busLocation.bus.codigo}")
+                                .snippet("Bus cercano")
+                        )
+                    }
                 }
 
                 map.cameraPosition = CameraPosition.Builder()

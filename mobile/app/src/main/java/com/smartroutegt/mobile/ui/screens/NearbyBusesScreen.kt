@@ -82,6 +82,10 @@ fun NearbyBusesScreen(
         mutableStateOf<com.smartroutegt.mobile.data.remote.BusLocationDto?>(null)
     }
 
+    var busesWithLocation by remember {
+        mutableStateOf<List<com.smartroutegt.mobile.data.remote.BusMonitoringDto>>(emptyList())
+    }
+
     var busSearchError by remember {
         mutableStateOf<String?>(null)
     }
@@ -124,6 +128,7 @@ fun NearbyBusesScreen(
                                     isLoadingBus = true
                                     busSearchError = null
                                     nearestBus = null
+                                    busesWithLocation = emptyList()
 
                                     try {
                                         val response = ApiClient.nearestBusApiService.getNearestBus(
@@ -143,8 +148,16 @@ fun NearbyBusesScreen(
                                                 )
                                             }
                                         } else {
-                                            busSearchError = "No se pudo consultar el bus más cercano"
+                                            busSearchError = "No se pudo consultar el bus mÃ¡s cercano"
                                         }
+
+                                        val monitoringBuses =
+                                            ApiClient.busMonitoringApiService.getBuses()
+
+                                        busesWithLocation = monitoringBuses.filter { bus ->
+                                            bus.latitud != null && bus.longitud != null
+                                        }
+
                                     } catch (e: Exception) {
                                         busSearchError = "Error: ${e.message}"
                                     } finally {
@@ -179,6 +192,7 @@ fun NearbyBusesScreen(
                 passengerLatitude = passengerLatitude!!,
                 passengerLongitude = passengerLongitude!!,
                 nearestBus = nearestBus,
+                busesWithLocation = busesWithLocation,
                 modifier = Modifier.padding(top = 16.dp)
             )
         }

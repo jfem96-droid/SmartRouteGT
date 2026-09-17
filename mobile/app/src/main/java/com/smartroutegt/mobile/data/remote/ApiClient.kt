@@ -30,4 +30,8 @@ object ApiClient {
     val passengerAlertApiService: PassengerAlertApiService by lazy {
         retrofit.create(PassengerAlertApiService::class.java)
     }
+
+    val busMonitoringApiService: BusMonitoringApiService by lazy {
+        retrofit.create(BusMonitoringApiService::class.java)
+    }
 }
