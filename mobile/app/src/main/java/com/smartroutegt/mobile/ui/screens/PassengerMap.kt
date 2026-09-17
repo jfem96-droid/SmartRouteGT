@@ -9,9 +9,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapView
+import org.maplibre.android.MapLibre
 
-private const val MAP_STYLE_URL = "https://demotiles.maplibre.org/style.json"
-
+private const val MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty"
 @Composable
 fun PassengerMap(
     modifier: Modifier = Modifier
@@ -21,8 +21,12 @@ fun PassengerMap(
             .fillMaxWidth()
             .height(300.dp),
         factory = { context ->
+            MapLibre.getInstance(context)
+
             MapView(context).apply {
                 onCreate(null)
+                onStart()
+                onResume()
 
                 getMapAsync { map ->
                     map.setStyle(MAP_STYLE_URL) {
@@ -34,9 +38,6 @@ fun PassengerMap(
                             .build()
                     }
                 }
-
-                onStart()
-                onResume()
             }
         }
     )
