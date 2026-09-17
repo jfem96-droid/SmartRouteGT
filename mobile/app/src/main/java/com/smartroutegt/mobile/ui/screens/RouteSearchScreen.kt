@@ -168,6 +168,7 @@ fun RouteSearchScreen(
                 if (selectedRoute != null && routeStops.isNotEmpty()) {
                     PassengerMap(
                         routeStops = routeStops,
+                        routePath = routePath,
                         modifier = Modifier.padding(top = 16.dp)
                     )
                 }

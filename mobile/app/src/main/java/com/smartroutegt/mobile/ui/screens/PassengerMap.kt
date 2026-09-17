@@ -9,6 +9,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.smartroutegt.mobile.data.remote.RouteStopDto
 import org.maplibre.android.MapLibre
 import org.maplibre.android.annotations.MarkerOptions
+import org.maplibre.android.annotations.PolylineOptions
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapView
@@ -18,12 +19,14 @@ private const val MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty"
 @Composable
 fun PassengerMap(
     routeStops: List<RouteStopDto>,
+    routePath: List<Long>?,
     modifier: Modifier = Modifier
 ) {
     AndroidView(
         modifier = modifier
             .fillMaxWidth()
             .height(300.dp),
+
         factory = { context ->
             MapLibre.getInstance(context)
 
@@ -66,6 +69,37 @@ fun PassengerMap(
                                 .bearing(0.0)
                                 .build()
                         }
+                    }
+                }
+            }
+        },
+
+        update = { mapView ->
+            mapView.getMapAsync { map ->
+
+                map.polylines.toList().forEach { polyline ->
+                    map.removePolyline(polyline)
+                }
+
+                if (!routePath.isNullOrEmpty()) {
+                    val routePoints = routePath.mapNotNull { stopId ->
+                        routeStops
+                            .find { it.stop.id == stopId }
+                            ?.stop
+                            ?.let { stop ->
+                                LatLng(
+                                    stop.latitud,
+                                    stop.longitud
+                                )
+                            }
+                    }
+
+                    if (routePoints.size >= 2) {
+                        map.addPolyline(
+                            PolylineOptions()
+                                .addAll(routePoints)
+                                .width(6.0f)
+                        )
                     }
                 }
             }
