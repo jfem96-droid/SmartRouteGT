@@ -45,6 +45,7 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
+import com.smartroutegt.mobile.network.NextStopDto
 
 @Composable
 fun DriverDashboardScreen(
@@ -72,7 +73,13 @@ fun DriverDashboardScreen(
 
     val sancionesConfirmadas = assignment.driver.sancionesConfirmadas
     var velocidadActual by remember { mutableStateOf(0f) }
-    val proximaParada = "No disponible"
+    var proximaParada by remember {
+        mutableStateOf<NextStopDto?>(null)
+    }
+
+    var estadoProximaParada by remember {
+        mutableStateOf("No disponible")
+    }
     var paradas by remember {
         mutableStateOf(emptyList<RouteStopDto>())
     }
@@ -101,6 +108,30 @@ fun DriverDashboardScreen(
             errorParadas = "No se pudieron cargar las paradas"
         } catch (exception: IOException) {
             errorParadas = "No se pudo conectar con el servidor"
+        }
+    }
+
+    LaunchedEffect(viajeActual?.id) {
+        val tripId = viajeActual?.id
+
+        if (tripId == null) {
+            proximaParada = null
+            estadoProximaParada = "No disponible"
+            return@LaunchedEffect
+        }
+
+        try {
+            val siguienteParada = driverApiService.getNextStop(tripId)
+
+            proximaParada = siguienteParada
+            estadoProximaParada = siguienteParada?.parada
+                ?: "No hay paradas pendientes"
+        } catch (exception: IOException) {
+            proximaParada = null
+            estadoProximaParada = "Sin conexión con el servidor"
+        } catch (exception: IllegalStateException) {
+            proximaParada = null
+            estadoProximaParada = "No se pudo consultar la próxima parada"
         }
     }
 
@@ -194,6 +225,21 @@ fun DriverDashboardScreen(
                                 longitud = location.longitude,
                                 velocidad = velocidadActual.toDouble()
                             )
+
+                            try {
+                                val siguienteParada =
+                                    driverApiService.getNextStop(tripId)
+
+                                proximaParada = siguienteParada
+                                estadoProximaParada = siguienteParada?.parada
+                                    ?: "No hay paradas pendientes"
+                            } catch (exception: IOException) {
+                                estadoProximaParada =
+                                    "Sin conexión con el servidor"
+                            } catch (exception: IllegalStateException) {
+                                estadoProximaParada =
+                                    "No se pudo consultar la próxima parada"
+                            }
                         } catch (exception: HttpException) {
                             estadoGps = "Error al registrar ubicación"
                         } catch (exception: IOException) {
@@ -307,7 +353,7 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
                 ) 
 
                 Text(
-                    text = proximaParada,
+                    text = estadoProximaParada,
                     style = MaterialTheme.typography.bodyLarge
                 )
 
@@ -404,6 +450,23 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
                             }
 
                             mapView.overlays.add(marcadorBus)
+                        }
+
+                        proximaParada?.let { siguienteParada ->
+                            val marcadorProximaParada = Marker(mapView).apply {
+                                position = GeoPoint(
+                                    siguienteParada.latitud,
+                                    siguienteParada.longitud
+                                )
+                                title = "Próxima parada: ${siguienteParada.parada}"
+                                snippet = "Parada ${siguienteParada.orden}"
+                                setAnchor(
+                                    Marker.ANCHOR_CENTER,
+                                    Marker.ANCHOR_BOTTOM
+                                )
+                            }
+
+                            mapView.overlays.add(marcadorProximaParada)
                         }
 
                         paradas.firstOrNull()?.let { primeraParada ->
