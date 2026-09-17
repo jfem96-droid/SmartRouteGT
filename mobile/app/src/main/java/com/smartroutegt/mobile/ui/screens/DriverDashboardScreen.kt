@@ -17,6 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.material3.Button
 import android.Manifest
 import android.content.pm.PackageManager
@@ -26,8 +27,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import android.content.Context
 import android.location.LocationManager
-import android.os.Build
 import android.location.Location
+import android.location.LocationListener
 import com.smartroutegt.mobile.network.DriverRouteAssignmentDto
 import com.smartroutegt.mobile.network.TripDto
 import androidx.compose.runtime.rememberCoroutineScope
@@ -122,93 +123,98 @@ fun DriverDashboardScreen(
     var latitud by remember { mutableStateOf<Double?>(null) }
     var longitud by remember { mutableStateOf<Double?>(null) }
 
-    fun obtenerUbicacion() {
-    val permisoPreciso = ContextCompat.checkSelfPermission(
-        context,
-        Manifest.permission.ACCESS_FINE_LOCATION
-    )
-
-    val permisoAproximado = ContextCompat.checkSelfPermission(
-        context,
-        Manifest.permission.ACCESS_COARSE_LOCATION
-    )
-
-    if (
-        permisoPreciso != PackageManager.PERMISSION_GRANTED &&
-        permisoAproximado != PackageManager.PERMISSION_GRANTED
-    ) {
-        estadoGps = "Permiso requerido"
-        return
+    var gpsActivo by remember {
+        mutableStateOf(false)
     }
 
-    val proveedor = when {
-        permisoPreciso == PackageManager.PERMISSION_GRANTED &&
-            locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) -> {
-            LocationManager.GPS_PROVIDER
+    DisposableEffect(gpsActivo, viajeActual?.id) {
+        if (!gpsActivo) {
+            return@DisposableEffect onDispose { }
         }
 
-        locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) -> {
-            LocationManager.NETWORK_PROVIDER
+        val permisoPreciso = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        )
+
+        val permisoAproximado = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+
+        if (
+            permisoPreciso != PackageManager.PERMISSION_GRANTED &&
+            permisoAproximado != PackageManager.PERMISSION_GRANTED
+        ) {
+            estadoGps = "Permiso requerido"
+
+            return@DisposableEffect onDispose { }
         }
 
-        else -> {
-            estadoGps = "Ubicación desactivada"
-            return
-        }
-    }
-
-    estadoGps = "Buscando ubicación..."
-
-    fun actualizarUbicacion(location: Location?) {
-        if (location != null) {
-            latitud = location.latitude
-            longitud = location.longitude
-
-            velocidadActual = if (location.hasSpeed()) {
-                location.speed * 3.6f
-            } else {
-                0f
+        val proveedor = when {
+            permisoPreciso == PackageManager.PERMISSION_GRANTED &&
+                locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) -> {
+                LocationManager.GPS_PROVIDER
             }
 
-            estadoGps = "Ubicación disponible"
+            locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) -> {
+                LocationManager.NETWORK_PROVIDER
+            }
 
-            val tripId = viajeActual?.id
+            else -> {
+                estadoGps = "Ubicación desactivada"
 
-            if (tripId != null) {
-                coroutineScope.launch {
-                    try {
-                        driverApiService.registerLocation(
-                            tripId = tripId,
-                            latitud = location.latitude,
-                            longitud = location.longitude,
-                            velocidad = velocidadActual.toDouble()
-                        )
-                    } catch (exception: HttpException) {
-                        estadoGps = "Error al registrar ubicación"
-                    } catch (exception: IOException) {
-                        estadoGps = "Sin conexión con el servidor"
+                return@DisposableEffect onDispose { }
+            }
+        }
+
+        estadoGps = "Buscando ubicación..."
+
+        val locationListener = object : LocationListener {
+            override fun onLocationChanged(location: Location) {
+                latitud = location.latitude
+                longitud = location.longitude
+
+                velocidadActual = if (location.hasSpeed()) {
+                    location.speed * 3.6f
+                } else {
+                    0f
+                }
+
+                estadoGps = "Ubicación disponible"
+
+                val tripId = viajeActual?.id
+
+                if (tripId != null) {
+                    coroutineScope.launch {
+                        try {
+                            driverApiService.registerLocation(
+                                tripId = tripId,
+                                latitud = location.latitude,
+                                longitud = location.longitude,
+                                velocidad = velocidadActual.toDouble()
+                            )
+                        } catch (exception: HttpException) {
+                            estadoGps = "Error al registrar ubicación"
+                        } catch (exception: IOException) {
+                            estadoGps = "Sin conexión con el servidor"
+                        }
                     }
                 }
             }
-        } else {
-            estadoGps = "Ubicación no disponible"
+        }
+
+        locationManager.requestLocationUpdates(
+            proveedor,
+            2000L,
+            1f,
+            locationListener
+        )
+
+        onDispose {
+            locationManager.removeUpdates(locationListener)
         }
     }
-
-if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-    locationManager.getCurrentLocation(
-        proveedor,
-        null,
-        ContextCompat.getMainExecutor(context)
-    ) { location ->
-        actualizarUbicacion(location)
-    }
-} else {
-    actualizarUbicacion(
-        locationManager.getLastKnownLocation(proveedor)
-    )
-}
-}
 
 val permisoUbicacionLauncher = rememberLauncherForActivityResult(
     contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -221,7 +227,7 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
 
     if (ubicacionPrecisaConcedida || ubicacionAproximadaConcedida) {
         estadoGps = "Permiso concedido"
-        obtenerUbicacion()
+        gpsActivo = true
     } else {
         estadoGps = "Permiso denegado"
     }
@@ -472,7 +478,7 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
                             permisoPreciso == PackageManager.PERMISSION_GRANTED ||
                             permisoAproximado == PackageManager.PERMISSION_GRANTED
                         ) {
-                            obtenerUbicacion()
+                            gpsActivo = true
                         } else {
                             permisoUbicacionLauncher.launch(
                                 arrayOf(
@@ -483,7 +489,13 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
                         }
                     }
                 ) {
-                    Text(text = "Obtener ubicación")
+                    Text(
+                        text = if (gpsActivo) {
+                            "GPS activo"
+                        } else {
+                            "Activar GPS"
+                        }
+                    )
                 }
             }
         }
@@ -568,6 +580,7 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
 
                                     viajeActual = null
                                     estadoViaje = "Finalizado"
+                                    gpsActivo = false
                                 } catch (exception: HttpException) {
                                     errorViaje = "No se pudo finalizar el viaje"
                                 } catch (exception: IOException) {
