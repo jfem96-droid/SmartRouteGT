@@ -1,12 +1,11 @@
 package com.smartroutegt.backend.service;
 
-import com.smartroutegt.backend.entity.Bus;
-
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+
+import com.smartroutegt.backend.entity.Bus;
 
 @Service
 public class SearchService {
@@ -28,11 +27,9 @@ public class SearchService {
         List<Bus> busesOrdenados = new ArrayList<>(buses);
 
         busesOrdenados.sort(
-                Comparator.comparing(
-                        Bus::getCodigo,
-                        String.CASE_INSENSITIVE_ORDER
-                )
-        );
+                (a, b) -> String.CASE_INSENSITIVE_ORDER.compare(
+                        a.getCodigo(),
+                        b.getCodigo()));
 
         int izquierda = 0;
         int derecha = busesOrdenados.size() - 1;
@@ -43,8 +40,7 @@ public class SearchService {
 
             Bus busMedio = busesOrdenados.get(medio);
 
-            int comparacion =
-                    busMedio.getCodigo().compareToIgnoreCase(codigo);
+            int comparacion = busMedio.getCodigo().compareToIgnoreCase(codigo);
 
             if (comparacion == 0) {
                 return busMedio;
