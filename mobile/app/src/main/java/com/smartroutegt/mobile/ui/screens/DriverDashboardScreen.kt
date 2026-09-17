@@ -45,6 +45,7 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
+import org.osmdroid.config.Configuration
 import com.smartroutegt.mobile.network.NextStopDto
 
 @Composable
@@ -404,6 +405,9 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
                         .fillMaxWidth()
                         .height(300.dp),
                         factory = { mapContext ->
+                        Configuration.getInstance().userAgentValue =
+                            mapContext.packageName
+
                         MapView(mapContext).apply {
                             setTileSource(TileSourceFactory.MAPNIK)
                             setMultiTouchControls(true)
