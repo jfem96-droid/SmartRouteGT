@@ -382,3 +382,85 @@ fetch("http://localhost:8080/api/buses")
             </tr>
         `;
     });
+
+    // MAPA EN VIVO DE BUSES
+const mapaBuses = L.map("mapaBuses").setView([14.6349, -90.5069], 12);
+
+L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {
+    maxZoom: 17,
+    attribution: "Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; OpenTopoMap"
+}).addTo(mapaBuses);
+
+const marcadoresBuses = new Map();
+
+function cargarBusesEnMapa() {
+    fetch("http://localhost:8080/api/buses")
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("No se pudieron obtener los buses para el mapa");
+            }
+
+            return response.json();
+        })
+       .then(buses => {
+    buses.forEach(bus => {
+        fetch(`http://localhost:8080/api/locations/bus/${bus.id}/latest`)
+            .then(response => {
+                if (response.status === 404) {
+                    return null;
+                }
+
+                if (!response.ok) {
+                    throw new Error(
+                        `No se pudo obtener la ubicación del bus ${bus.codigo}`
+                    );
+                }
+
+                return response.json();
+            })
+            .then(ubicacion => {
+    if (!ubicacion) {
+        return;
+    }
+
+   let marcador = marcadoresBuses.get(bus.id);
+
+if (marcador) {
+    marcador.setLatLng([
+        ubicacion.latitud,
+        ubicacion.longitud
+    ]);
+} else {
+    marcador = L.marker([
+        ubicacion.latitud,
+        ubicacion.longitud
+    ]).addTo(mapaBuses);
+
+    marcadoresBuses.set(bus.id, marcador);
+}
+
+    marcador.bindPopup(`
+        <strong>${bus.codigo}</strong><br>
+        Placa: ${bus.placa}<br>
+        Velocidad: ${ubicacion.velocidad} km/h<br>
+        Última actualización:
+        ${new Date(ubicacion.fechaHora).toLocaleString()}
+    `);
+
+})
+            .catch(error => {
+                console.error(
+                    `Error al consultar GPS del bus ${bus.codigo}:`,
+                    error
+                );
+            });
+    });
+})
+        .catch(error => {
+            console.error("Error al cargar buses en el mapa:", error);
+        });
+}
+
+cargarBusesEnMapa();
+
+setInterval(cargarBusesEnMapa, 10000);
