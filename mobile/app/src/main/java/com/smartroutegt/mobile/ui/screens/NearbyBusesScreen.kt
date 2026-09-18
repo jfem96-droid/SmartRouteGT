@@ -27,6 +27,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import com.smartroutegt.mobile.data.remote.ApiClient
 import com.google.gson.Gson
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 @RequiresPermission(
     anyOf = [
@@ -80,6 +82,10 @@ fun NearbyBusesScreen(
         mutableStateOf<com.smartroutegt.mobile.data.remote.BusLocationDto?>(null)
     }
 
+    var busesWithLocation by remember {
+        mutableStateOf<List<com.smartroutegt.mobile.data.remote.BusMonitoringDto>>(emptyList())
+    }
+
     var busSearchError by remember {
         mutableStateOf<String?>(null)
     }
@@ -89,6 +95,7 @@ fun NearbyBusesScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp)
     ) {
 
@@ -121,6 +128,7 @@ fun NearbyBusesScreen(
                                     isLoadingBus = true
                                     busSearchError = null
                                     nearestBus = null
+                                    busesWithLocation = emptyList()
 
                                     try {
                                         val response = ApiClient.nearestBusApiService.getNearestBus(
@@ -140,8 +148,16 @@ fun NearbyBusesScreen(
                                                 )
                                             }
                                         } else {
-                                            busSearchError = "No se pudo consultar el bus más cercano"
+                                            busSearchError = "No se pudo consultar el bus mÃ¡s cercano"
                                         }
+
+                                        val monitoringBuses =
+                                            ApiClient.busMonitoringApiService.getBuses()
+
+                                        busesWithLocation = monitoringBuses.filter { bus ->
+                                            bus.latitud != null && bus.longitud != null
+                                        }
+
                                     } catch (e: Exception) {
                                         busSearchError = "Error: ${e.message}"
                                     } finally {
@@ -167,6 +183,16 @@ fun NearbyBusesScreen(
         if (passengerLatitude != null && passengerLongitude != null) {
             Text(
                 text = "Ubicación obtenida: $passengerLatitude, $passengerLongitude",
+                modifier = Modifier.padding(top = 16.dp)
+            )
+        }
+
+        if (passengerLatitude != null && passengerLongitude != null) {
+            NearbyBusMap(
+                passengerLatitude = passengerLatitude!!,
+                passengerLongitude = passengerLongitude!!,
+                nearestBus = nearestBus,
+                busesWithLocation = busesWithLocation,
                 modifier = Modifier.padding(top = 16.dp)
             )
         }
