@@ -239,7 +239,7 @@ fun NearbyBusesScreen(
                     ) {
                         Text(text = "Bus: ${nearestBus!!.bus.codigo}")
                         Text(text = "Placa: ${nearestBus!!.bus.placa}")
-                        Text(text = "Velocidad: ${nearestBus!!.velocidad}")
+                        Text(text = "Velocidad: %.1f km/h".format(nearestBus!!.velocidad))
                         Text(
                             text = "Ubicación: ${nearestBus!!.latitud}, ${nearestBus!!.longitud}"
                         )

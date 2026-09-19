@@ -442,7 +442,7 @@ if (marcador) {
     marcador.bindPopup(`
         <strong>${bus.codigo}</strong><br>
         Placa: ${bus.placa}<br>
-        Velocidad: ${ubicacion.velocidad} km/h<br>
+        Velocidad: ${Number(ubicacion.velocidad).toFixed(1)} km/h<br>
         Última actualización:
         ${new Date(ubicacion.fechaHora).toLocaleString()}
     `);

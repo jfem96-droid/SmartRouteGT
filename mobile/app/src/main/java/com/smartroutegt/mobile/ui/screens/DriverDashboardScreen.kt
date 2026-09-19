@@ -509,7 +509,7 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
                 )
 
                 Text(
-                    text = "$velocidadActual km/h",
+                    text = "%.1f km/h".format(velocidadActual),
                     style = MaterialTheme.typography.headlineSmall
                 )
 
@@ -519,13 +519,45 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Text(
-                    text = if (latitud != null && longitud != null) {
-                        "Ubicación: $latitud, $longitud"
-                    } else {
-                        "Ubicación: no disponible"
-                    }
-                )
+            Text(
+    text = if (latitud != null && longitud != null) {
+        val paradaCercana = paradas.minByOrNull { routeStop ->
+            val resultado = FloatArray(1)
+
+            android.location.Location.distanceBetween(
+                latitud!!,
+                longitud!!,
+                routeStop.stop.latitud,
+                routeStop.stop.longitud,
+                resultado
+            )
+
+            resultado[0]
+        }
+
+        if (paradaCercana != null) {
+            val resultado = FloatArray(1)
+
+            android.location.Location.distanceBetween(
+                latitud!!,
+                longitud!!,
+                paradaCercana.stop.latitud,
+                paradaCercana.stop.longitud,
+                resultado
+            )
+
+            if (resultado[0] <= 300) {
+                "Ubicación: Cerca de ${paradaCercana.stop.nombre}"
+            } else {
+                "Ubicación: En ruta"
+            }
+        } else {
+            "Ubicación: En ruta"
+        }
+    } else {
+        "Ubicación: no disponible"
+    }
+)
 
                 Spacer(modifier = Modifier.height(16.dp))
 
