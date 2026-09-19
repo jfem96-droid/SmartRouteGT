@@ -20,6 +20,8 @@ import com.smartroutegt.mobile.data.remote.RouteDto
 import com.smartroutegt.mobile.data.remote.StopDto
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 
 @Composable
@@ -104,6 +106,7 @@ fun RouteSearchScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp)
     ) {
 
@@ -161,6 +164,15 @@ fun RouteSearchScreen(
                         modifier = Modifier.padding(top = 16.dp)
                     )
                 }
+
+                if (selectedRoute != null && routeStops.isNotEmpty()) {
+                    PassengerMap(
+                        routeStops = routeStops,
+                        routePath = routePath,
+                        modifier = Modifier.padding(top = 16.dp)
+                    )
+                }
+
                 when {
                     selectedRoute == null -> {
                         Text(
