@@ -1,5 +1,7 @@
 package com.smartroutegt.mobile.network
 
+import com.google.gson.Gson
+
 class DriverApiService(
     private val api: SmartRouteApi
 ) {
@@ -61,5 +63,30 @@ class DriverApiService(
         routeId: Long
     ): List<RouteStopDto> {
         return api.getRouteStops(routeId)
+    }
+
+    suspend fun getNextStop(
+        tripId: Long
+    ): NextStopDto? {
+        val response = api.getNextStop(tripId)
+
+        if (!response.isSuccessful) {
+            throw IllegalStateException(
+                "Error al consultar próxima parada: HTTP ${response.code()}"
+            )
+        }
+
+        val responseText = response.body()?.string()
+
+        if (responseText.isNullOrBlank() ||
+            responseText == "No hay paradas pendientes"
+        ) {
+            return null
+        }
+
+        return Gson().fromJson(
+            responseText,
+            NextStopDto::class.java
+        )
     }
 }

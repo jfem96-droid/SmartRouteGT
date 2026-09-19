@@ -17,6 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.material3.Button
 import android.Manifest
 import android.content.pm.PackageManager
@@ -26,8 +27,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import android.content.Context
 import android.location.LocationManager
-import android.os.Build
 import android.location.Location
+import android.location.LocationListener
 import com.smartroutegt.mobile.network.DriverRouteAssignmentDto
 import com.smartroutegt.mobile.network.TripDto
 import androidx.compose.runtime.rememberCoroutineScope
@@ -38,6 +39,14 @@ import retrofit2.HttpException
 import java.io.IOException
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import com.smartroutegt.mobile.network.RouteStopDto
+import androidx.compose.ui.viewinterop.AndroidView
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
+import org.osmdroid.config.Configuration
+import com.smartroutegt.mobile.network.NextStopDto
 
 @Composable
 fun DriverDashboardScreen(
@@ -65,9 +74,15 @@ fun DriverDashboardScreen(
 
     val sancionesConfirmadas = assignment.driver.sancionesConfirmadas
     var velocidadActual by remember { mutableStateOf(0f) }
-    val proximaParada = "No disponible"
+    var proximaParada by remember {
+        mutableStateOf<NextStopDto?>(null)
+    }
+
+    var estadoProximaParada by remember {
+        mutableStateOf("No disponible")
+    }
     var paradas by remember {
-        mutableStateOf(emptyList<String>())
+        mutableStateOf(emptyList<RouteStopDto>())
     }
 
     var errorParadas by remember {
@@ -90,11 +105,34 @@ fun DriverDashboardScreen(
         try {
             paradas = driverApiService.getRouteStops(assignment.route.id)
                 .sortedBy { routeStop -> routeStop.orden }
-                .map { routeStop -> routeStop.stop.nombre }
         } catch (exception: HttpException) {
             errorParadas = "No se pudieron cargar las paradas"
         } catch (exception: IOException) {
             errorParadas = "No se pudo conectar con el servidor"
+        }
+    }
+
+    LaunchedEffect(viajeActual?.id) {
+        val tripId = viajeActual?.id
+
+        if (tripId == null) {
+            proximaParada = null
+            estadoProximaParada = "No disponible"
+            return@LaunchedEffect
+        }
+
+        try {
+            val siguienteParada = driverApiService.getNextStop(tripId)
+
+            proximaParada = siguienteParada
+            estadoProximaParada = siguienteParada?.parada
+                ?: "No hay paradas pendientes"
+        } catch (exception: IOException) {
+            proximaParada = null
+            estadoProximaParada = "Sin conexión con el servidor"
+        } catch (exception: IllegalStateException) {
+            proximaParada = null
+            estadoProximaParada = "No se pudo consultar la próxima parada"
         }
     }
 
@@ -117,93 +155,113 @@ fun DriverDashboardScreen(
     var latitud by remember { mutableStateOf<Double?>(null) }
     var longitud by remember { mutableStateOf<Double?>(null) }
 
-    fun obtenerUbicacion() {
-    val permisoPreciso = ContextCompat.checkSelfPermission(
-        context,
-        Manifest.permission.ACCESS_FINE_LOCATION
-    )
-
-    val permisoAproximado = ContextCompat.checkSelfPermission(
-        context,
-        Manifest.permission.ACCESS_COARSE_LOCATION
-    )
-
-    if (
-        permisoPreciso != PackageManager.PERMISSION_GRANTED &&
-        permisoAproximado != PackageManager.PERMISSION_GRANTED
-    ) {
-        estadoGps = "Permiso requerido"
-        return
+    var gpsActivo by remember {
+        mutableStateOf(false)
     }
 
-    val proveedor = when {
-        permisoPreciso == PackageManager.PERMISSION_GRANTED &&
-            locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) -> {
-            LocationManager.GPS_PROVIDER
+    DisposableEffect(gpsActivo, viajeActual?.id) {
+        if (!gpsActivo) {
+            return@DisposableEffect onDispose { }
         }
 
-        locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) -> {
-            LocationManager.NETWORK_PROVIDER
+        val permisoPreciso = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        )
+
+        val permisoAproximado = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+
+        if (
+            permisoPreciso != PackageManager.PERMISSION_GRANTED &&
+            permisoAproximado != PackageManager.PERMISSION_GRANTED
+        ) {
+            estadoGps = "Permiso requerido"
+
+            return@DisposableEffect onDispose { }
         }
 
-        else -> {
-            estadoGps = "Ubicación desactivada"
-            return
-        }
-    }
-
-    estadoGps = "Buscando ubicación..."
-
-    fun actualizarUbicacion(location: Location?) {
-        if (location != null) {
-            latitud = location.latitude
-            longitud = location.longitude
-
-            velocidadActual = if (location.hasSpeed()) {
-                location.speed * 3.6f
-            } else {
-                0f
+        val proveedor = when {
+            permisoPreciso == PackageManager.PERMISSION_GRANTED &&
+                locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) -> {
+                LocationManager.GPS_PROVIDER
             }
 
-            estadoGps = "Ubicación disponible"
+            locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) -> {
+                LocationManager.NETWORK_PROVIDER
+            }
 
-            val tripId = viajeActual?.id
+            else -> {
+                estadoGps = "Ubicación desactivada"
 
-            if (tripId != null) {
-                coroutineScope.launch {
-                    try {
-                        driverApiService.registerLocation(
-                            tripId = tripId,
-                            latitud = location.latitude,
-                            longitud = location.longitude,
-                            velocidad = velocidadActual.toDouble()
-                        )
-                    } catch (exception: HttpException) {
-                        estadoGps = "Error al registrar ubicación"
-                    } catch (exception: IOException) {
-                        estadoGps = "Sin conexión con el servidor"
+                return@DisposableEffect onDispose { }
+            }
+        }
+
+        estadoGps = "Buscando ubicación..."
+
+        val locationListener = object : LocationListener {
+            override fun onLocationChanged(location: Location) {
+                latitud = location.latitude
+                longitud = location.longitude
+
+                velocidadActual = if (location.hasSpeed()) {
+                    location.speed * 3.6f
+                } else {
+                    0f
+                }
+
+                estadoGps = "Ubicación disponible"
+
+                val tripId = viajeActual?.id
+
+                if (tripId != null) {
+                    coroutineScope.launch {
+                        try {
+                            driverApiService.registerLocation(
+                                tripId = tripId,
+                                latitud = location.latitude,
+                                longitud = location.longitude,
+                                velocidad = velocidadActual.toDouble()
+                            )
+
+                            try {
+                                val siguienteParada =
+                                    driverApiService.getNextStop(tripId)
+
+                                proximaParada = siguienteParada
+                                estadoProximaParada = siguienteParada?.parada
+                                    ?: "No hay paradas pendientes"
+                            } catch (exception: IOException) {
+                                estadoProximaParada =
+                                    "Sin conexión con el servidor"
+                            } catch (exception: IllegalStateException) {
+                                estadoProximaParada =
+                                    "No se pudo consultar la próxima parada"
+                            }
+                        } catch (exception: HttpException) {
+                            estadoGps = "Error al registrar ubicación"
+                        } catch (exception: IOException) {
+                            estadoGps = "Sin conexión con el servidor"
+                        }
                     }
                 }
             }
-        } else {
-            estadoGps = "Ubicación no disponible"
+        }
+
+        locationManager.requestLocationUpdates(
+            proveedor,
+            2000L,
+            1f,
+            locationListener
+        )
+
+        onDispose {
+            locationManager.removeUpdates(locationListener)
         }
     }
-
-if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-    locationManager.getCurrentLocation(
-        proveedor,
-        null,
-        ContextCompat.getMainExecutor(context)
-    ) { location ->
-        actualizarUbicacion(location)
-    }
-} else {
-    actualizarUbicacion(
-        locationManager.getLastKnownLocation(proveedor)
-    )
-}
-}
 
 val permisoUbicacionLauncher = rememberLauncherForActivityResult(
     contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -216,7 +274,7 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
 
     if (ubicacionPrecisaConcedida || ubicacionAproximadaConcedida) {
         estadoGps = "Permiso concedido"
-        obtenerUbicacion()
+        gpsActivo = true
     } else {
         estadoGps = "Permiso denegado"
     }
@@ -296,7 +354,7 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
                 ) 
 
                 Text(
-                    text = proximaParada,
+                    text = estadoProximaParada,
                     style = MaterialTheme.typography.bodyLarge
                 )
 
@@ -319,11 +377,114 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
                     }
 
                     else -> {
-                        paradas.forEach { parada ->
-                            Text(text = "• $parada")
+                        paradas.forEach { routeStop ->
+                            Text(text = "• ${routeStop.stop.nombre}")
                         }
                     }
                 }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = "Mapa de la ruta",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                AndroidView(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp),
+                        factory = { mapContext ->
+                        Configuration.getInstance().userAgentValue =
+                            mapContext.packageName
+
+                        MapView(mapContext).apply {
+                            setTileSource(TileSourceFactory.MAPNIK)
+                            setMultiTouchControls(true)
+                            controller.setZoom(14.0)
+                        }
+                    },
+                    update = { mapView ->
+                        mapView.overlays.removeAll { overlay ->
+                            overlay is Marker
+                        }
+
+                        paradas.forEach { routeStop ->
+                            val marcadorParada = Marker(mapView).apply {
+                                position = GeoPoint(
+                                    routeStop.stop.latitud,
+                                    routeStop.stop.longitud
+                                )
+                                title = routeStop.stop.nombre
+                                snippet = "Parada ${routeStop.orden}"
+                                setAnchor(
+                                    Marker.ANCHOR_CENTER,
+                                    Marker.ANCHOR_BOTTOM
+                                )
+                            }
+
+                            mapView.overlays.add(marcadorParada)
+                        }
+
+                        val latitudActual = latitud
+                        val longitudActual = longitud
+
+                        if (latitudActual != null && longitudActual != null) {
+                            val marcadorBus = Marker(mapView).apply {
+                                position = GeoPoint(
+                                    latitudActual,
+                                    longitudActual
+                                )
+                                title = "Ubicación actual del bus"
+                                snippet = "Piloto: $pilotoNombre"
+                                setAnchor(
+                                    Marker.ANCHOR_CENTER,
+                                    Marker.ANCHOR_BOTTOM
+                                )
+                            }
+
+                            mapView.overlays.add(marcadorBus)
+                        }
+
+                        proximaParada?.let { siguienteParada ->
+                            val marcadorProximaParada = Marker(mapView).apply {
+                                position = GeoPoint(
+                                    siguienteParada.latitud,
+                                    siguienteParada.longitud
+                                )
+                                title = "Próxima parada: ${siguienteParada.parada}"
+                                snippet = "Parada ${siguienteParada.orden}"
+                                setAnchor(
+                                    Marker.ANCHOR_CENTER,
+                                    Marker.ANCHOR_BOTTOM
+                                )
+                            }
+
+                            mapView.overlays.add(marcadorProximaParada)
+                        }
+
+                        paradas.firstOrNull()?.let { primeraParada ->
+                            mapView.controller.setCenter(
+                                GeoPoint(
+                                    primeraParada.stop.latitud,
+                                    primeraParada.stop.longitud
+                                )
+                            )
+                        }
+
+                        mapView.invalidate()
+                    }
+                )
             }
         }
 
@@ -384,7 +545,7 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
                             permisoPreciso == PackageManager.PERMISSION_GRANTED ||
                             permisoAproximado == PackageManager.PERMISSION_GRANTED
                         ) {
-                            obtenerUbicacion()
+                            gpsActivo = true
                         } else {
                             permisoUbicacionLauncher.launch(
                                 arrayOf(
@@ -395,7 +556,13 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
                         }
                     }
                 ) {
-                    Text(text = "Obtener ubicación")
+                    Text(
+                        text = if (gpsActivo) {
+                            "GPS activo"
+                        } else {
+                            "Activar GPS"
+                        }
+                    )
                 }
             }
         }
@@ -480,6 +647,7 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
 
                                     viajeActual = null
                                     estadoViaje = "Finalizado"
+                                    gpsActivo = false
                                 } catch (exception: HttpException) {
                                     errorViaje = "No se pudo finalizar el viaje"
                                 } catch (exception: IOException) {
