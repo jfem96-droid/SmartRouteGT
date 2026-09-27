@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -73,13 +74,20 @@ fun DriverLicenseScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 24.dp),
-            singleLine = true
+            singleLine = true,
+            enabled = !cargando
         )
 
         if (error != null) {
             Text(
                 text = error!!,
                 modifier = Modifier.padding(top = 8.dp)
+            )
+        }
+
+        if (cargando) {
+            CircularProgressIndicator(
+                modifier = Modifier.padding(top = 16.dp)
             )
         }
 
