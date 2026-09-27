@@ -127,6 +127,8 @@ fun DriverDashboardScreen(
         }
 
         try {
+            estadoProximaParada = "Consultando próxima parada..."
+            
             val siguienteParada = driverApiService.getNextStop(tripId)
 
             proximaParada = siguienteParada
