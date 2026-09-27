@@ -85,6 +85,10 @@ fun DriverDashboardScreen(
         mutableStateOf(emptyList<RouteStopDto>())
     }
 
+    var cargandoParadas by remember {
+        mutableStateOf(true)
+    }
+
     var errorParadas by remember {
         mutableStateOf<String?>(null)
     }
@@ -110,6 +114,7 @@ fun DriverDashboardScreen(
         } catch (exception: IOException) {
             errorParadas = "No se pudo conectar con el servidor"
         }
+        cargandoParadas = false
     }
 
     LaunchedEffect(viajeActual?.id) {
@@ -368,6 +373,10 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 when {
+                    cargandoParadas -> {
+                        Text(text = "Cargando paradas...")
+                    }
+
                     errorParadas != null -> {
                         Text(text = errorParadas!!)
                     }
