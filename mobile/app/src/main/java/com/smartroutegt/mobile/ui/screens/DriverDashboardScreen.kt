@@ -670,6 +670,8 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
                 if (errorViaje != null) {
                     Text(
                         text = errorViaje!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(top = 8.dp)
                     )
                 }
