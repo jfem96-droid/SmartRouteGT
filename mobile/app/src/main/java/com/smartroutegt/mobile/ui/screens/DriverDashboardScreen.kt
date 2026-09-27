@@ -300,7 +300,10 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Text(text = "Piloto: $pilotoNombre")
+        Text(
+            text = "Piloto: $pilotoNombre",
+            style = MaterialTheme.typography.titleMedium
+        )
 
         Spacer(modifier = Modifier.height(8.dp))
 
