@@ -333,14 +333,17 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
                 text = "Estado del viaje: $estadoViaje",
                 style = MaterialTheme.typography.bodyLarge
             )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Sanciones confirmadas: $sancionesConfirmadas",
+                style = MaterialTheme.typography.bodyLarge
+            )
         }
     }
 
     Spacer(modifier = Modifier.height(16.dp))
-
-        Text(text = "Sanciones confirmadas: $sancionesConfirmadas")
-
-        Spacer(modifier = Modifier.height(12.dp))
 
         Card(
             modifier = Modifier.fillMaxWidth()
