@@ -148,7 +148,7 @@ fun NearbyBusesScreen(
                                                 )
                                             }
                                         } else {
-                                            busSearchError = "No se pudo consultar el bus mÃ¡s cercano"
+                                            busSearchError = "No se pudo consultar el bus más cercano"
                                         }
 
                                         val monitoringBuses =
