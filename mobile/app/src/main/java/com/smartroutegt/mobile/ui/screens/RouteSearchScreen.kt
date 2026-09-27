@@ -148,6 +148,7 @@ fun RouteSearchScreen(
                             selectedRoute = route
                             selectedOrigin = null
                             selectedDestination = null
+                            routePath = null
                         },
                         modifier = Modifier
                             .fillMaxWidth()
