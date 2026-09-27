@@ -1,5 +1,16 @@
 package com.smartroutegt.backend.controller;
 
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.smartroutegt.backend.entity.Bus;
 import com.smartroutegt.backend.entity.Driver;
 import com.smartroutegt.backend.entity.Trip;
@@ -8,11 +19,6 @@ import com.smartroutegt.backend.repository.BusRepository;
 import com.smartroutegt.backend.repository.DriverRepository;
 import com.smartroutegt.backend.repository.TripRepository;
 import com.smartroutegt.backend.repository.ViolationRepository;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/violations")
@@ -73,11 +79,9 @@ public class ViolationController {
                 request.getTipo(),
                 request.getDescripcion(),
                 request.getVelocidadRegistrada(),
-                request.getLimitePermitido()
-        );
+                request.getLimitePermitido());
 
-        Violation infraccionGuardada =
-                violationRepository.save(violation);
+        Violation infraccionGuardada = violationRepository.save(violation);
 
         return ResponseEntity.ok(infraccionGuardada);
     }
@@ -91,14 +95,72 @@ public class ViolationController {
     public ResponseEntity<?> obtenerInfraccionPorId(
             @PathVariable Long id) {
 
-        Violation violation =
-                violationRepository.findById(id).orElse(null);
+        Violation violation = violationRepository.findById(id).orElse(null);
 
         if (violation == null) {
             return ResponseEntity.notFound().build();
         }
 
         return ResponseEntity.ok(violation);
+    }
+
+    @PutMapping("/{id}/confirm")
+    public ResponseEntity<?> confirmarInfraccion(
+            @PathVariable Long id) {
+
+        Violation violation = violationRepository
+                .findById(id)
+                .orElse(null);
+
+        if (violation == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        if (violation.getEstado() != Violation.Estado.PENDING) {
+            return ResponseEntity.badRequest()
+                    .body("La infracción ya fue procesada");
+        }
+
+        Driver driver = violation.getDriver();
+
+        violation.setEstado(Violation.Estado.CONFIRMED);
+
+        int nuevasSanciones = driver.getSancionesConfirmadas() + 1;
+
+        driver.setSancionesConfirmadas(nuevasSanciones);
+
+        if (nuevasSanciones >= 10) {
+            driver.setActivo(false);
+        }
+
+        driverRepository.save(driver);
+        Violation violationGuardada = violationRepository.save(violation);
+
+        return ResponseEntity.ok(violationGuardada);
+    }
+
+    @PutMapping("/{id}/reject")
+    public ResponseEntity<?> rechazarInfraccion(
+            @PathVariable Long id) {
+
+        Violation violation = violationRepository
+                .findById(id)
+                .orElse(null);
+
+        if (violation == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        if (violation.getEstado() != Violation.Estado.PENDING) {
+            return ResponseEntity.badRequest()
+                    .body("La infracción ya fue procesada");
+        }
+
+        violation.setEstado(Violation.Estado.REJECTED);
+
+        Violation violationGuardada = violationRepository.save(violation);
+
+        return ResponseEntity.ok(violationGuardada);
     }
 
     public static class ViolationRequest {
