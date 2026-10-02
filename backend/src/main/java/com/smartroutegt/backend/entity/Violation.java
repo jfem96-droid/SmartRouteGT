@@ -1,5 +1,7 @@
 package com.smartroutegt.backend.entity;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -8,8 +10,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-
-import java.time.LocalDateTime;
 
 @Entity
 public class Violation {
@@ -42,7 +42,8 @@ public class Violation {
     public enum Estado {
         PENDING,
         CONFIRMED,
-        REJECTED
+        REJECTED,
+        CANCELLED
     }
 
     public Violation() {

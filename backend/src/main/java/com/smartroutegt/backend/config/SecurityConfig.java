@@ -96,8 +96,10 @@ public class SecurityConfig {
 
                                                 .requestMatchers(
                                                                 HttpMethod.PUT,
+                                                                "/api/violations/*",
                                                                 "/api/violations/*/confirm",
                                                                 "/api/violations/*/reject",
+                                                                "/api/violations/*/cancel",
                                                                 "/api/passenger-alerts/*/review",
                                                                 "/api/passenger-alerts/*/resolve",
                                                                 "/api/passenger-reports/*/review",
