@@ -144,11 +144,17 @@ public class SecurityConfig {
                                                                 "/api/routes/**",
                                                                 "/api/stops/**",
                                                                 "/api/route-stops/**",
-                                                                "/api/locations/**",
-                                                                "/api/trips/**",
-                                                                "/api/stop-visits/**",
-                                                                "/api/assignments/driver/**")
+                                                                "/api/locations/bus/*/latest",
+                                                                "/api/trips/*/next-stop")
                                                 .hasAnyRole("ADMIN", "DRIVER", "PASSENGER")
+
+                                                .requestMatchers(
+                                                                HttpMethod.GET,
+                                                                "/api/locations/trip/**",
+                                                                "/api/trips/driver/**",
+                                                                "/api/stop-visits/trip/**",
+                                                                "/api/assignments/driver/**")
+                                                .hasAnyRole("ADMIN", "DRIVER")
 
                                                 .requestMatchers(
                                                                 "/api/algorithms/**",
