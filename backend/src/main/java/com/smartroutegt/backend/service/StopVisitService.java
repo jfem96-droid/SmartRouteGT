@@ -7,15 +7,13 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.smartroutegt.backend.entity.Stop;
+import com.smartroutegt.backend.entity.RouteStop;
 import com.smartroutegt.backend.entity.StopVisit;
 import com.smartroutegt.backend.entity.Trip;
 import com.smartroutegt.backend.repository.StopVisitRepository;
 
 @Service
 public class StopVisitService {
-
-        private static final long TIEMPO_MINIMO_PARADA_SEGUNDOS = 5;
 
         private final StopVisitRepository stopVisitRepository;
 
@@ -28,10 +26,16 @@ public class StopVisitService {
         @Transactional
         public void procesarUbicacion(
                         Trip trip,
-                        Stop stop,
+                        RouteStop routeStop,
                         double latitudBus,
                         double longitudBus,
                         LocalDateTime fechaHora) {
+
+                if (routeStop == null || routeStop.getStop() == null) {
+                        return;
+                }
+
+                var stop = routeStop.getStop();
 
                 if (!stop.isActiva()) {
                         return;
@@ -59,10 +63,7 @@ public class StopVisitService {
 
                 if (distancia > stop.getRadioPermitido()) {
 
-                        if (visitaPendiente.isPresent()) {
-                                stopVisitRepository.delete(visitaPendiente.get());
-                        }
-
+                        visitaPendiente.ifPresent(stopVisitRepository::delete);
                         return;
                 }
 
@@ -75,7 +76,6 @@ public class StopVisitService {
                                         distancia);
 
                         stopVisitRepository.save(nuevaVisita);
-
                         return;
                 }
 
@@ -89,8 +89,11 @@ public class StopVisitService {
                                 visita.getFechaEntrada(),
                                 fechaHora).getSeconds();
 
-                if (segundosDentro >= TIEMPO_MINIMO_PARADA_SEGUNDOS) {
+                int tiempoMinimo = Math.max(
+                                routeStop.getTiempoMinimoSegundos(),
+                                1);
 
+                if (segundosDentro >= tiempoMinimo) {
                         visita.setCumplida(true);
                         visita.setFechaCumplimiento(fechaHora);
                 }

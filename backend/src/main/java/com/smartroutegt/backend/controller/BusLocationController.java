@@ -138,7 +138,7 @@ public class BusLocationController {
 
                         stopVisitService.procesarUbicacion(
                                         trip,
-                                        routeStop.getStop(),
+                                        routeStop,
                                         locationActual.getLatitud(),
                                         locationActual.getLongitud(),
                                         locationActual.getFechaHora());

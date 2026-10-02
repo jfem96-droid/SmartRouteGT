@@ -50,6 +50,21 @@ public class SecurityConfig {
                                                 .hasRole("ADMIN")
 
                                                 .requestMatchers(
+                                                                HttpMethod.GET,
+                                                                "/api/drivers/**")
+                                                .hasRole("ADMIN")
+
+                                                .requestMatchers(
+                                                                HttpMethod.GET,
+                                                                "/api/assignments")
+                                                .hasRole("ADMIN")
+
+                                                .requestMatchers(
+                                                                HttpMethod.POST,
+                                                                "/api/violations")
+                                                .hasRole("ADMIN")
+
+                                                .requestMatchers(
                                                                 HttpMethod.POST,
                                                                 "/api/buses/**",
                                                                 "/api/routes/**",
