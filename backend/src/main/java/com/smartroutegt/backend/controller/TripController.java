@@ -23,6 +23,7 @@ import com.smartroutegt.backend.repository.DriverRouteAssignmentRepository;
 import com.smartroutegt.backend.repository.RouteStopRepository;
 import com.smartroutegt.backend.repository.StopVisitRepository;
 import com.smartroutegt.backend.repository.TripRepository;
+import com.smartroutegt.backend.service.ResourceAuthorizationService;
 import com.smartroutegt.backend.service.StopVisitService;
 
 @RestController
@@ -35,6 +36,7 @@ public class TripController {
         private final StopVisitRepository stopVisitRepository;
         private final BusLocationRepository locationRepository;
         private final StopVisitService stopVisitService;
+        private final ResourceAuthorizationService authorizationService;
 
         public TripController(
                         TripRepository tripRepository,
@@ -42,7 +44,8 @@ public class TripController {
                         RouteStopRepository routeStopRepository,
                         StopVisitRepository stopVisitRepository,
                         BusLocationRepository locationRepository,
-                        StopVisitService stopVisitService) {
+                        StopVisitService stopVisitService,
+                        ResourceAuthorizationService authorizationService) {
 
                 this.tripRepository = tripRepository;
                 this.assignmentRepository = assignmentRepository;
@@ -50,6 +53,7 @@ public class TripController {
                 this.stopVisitRepository = stopVisitRepository;
                 this.locationRepository = locationRepository;
                 this.stopVisitService = stopVisitService;
+                this.authorizationService = authorizationService;
         }
 
         @PostMapping("/start")
@@ -60,6 +64,13 @@ public class TripController {
                 if (assignment == null) {
                         return ResponseEntity.badRequest()
                                         .body("La asignación no existe");
+                }
+
+                if (!authorizationService.canAccessDriver(
+                                assignment.getDriver().getId())) {
+
+                        return ResponseEntity.status(403)
+                                        .body("No tiene permiso para iniciar un viaje con esta asignación");
                 }
 
                 if (!assignment.isActiva()) {
@@ -110,6 +121,12 @@ public class TripController {
                         return ResponseEntity.badRequest()
                                         .body("El viaje no existe");
                 }
+                if (!authorizationService.canAccessDriver(
+                                trip.getDriver().getId())) {
+
+                        return ResponseEntity.status(403)
+                                        .body("No tiene permiso para finalizar este viaje");
+                }
 
                 if (!trip.isActivo()) {
                         return ResponseEntity.badRequest()
@@ -125,11 +142,16 @@ public class TripController {
         }
 
         @GetMapping("/driver/{driverId}/active")
-        public ResponseEntity<Trip> obtenerViajeActivoPorPiloto(
+        public ResponseEntity<?> obtenerViajeActivoPorPiloto(
                         @PathVariable Long driverId) {
 
+                if (!authorizationService.canAccessDriver(driverId)) {
+                        return ResponseEntity.status(403)
+                                        .body("No tiene permiso para consultar los viajes de este piloto");
+                }
+
                 return tripRepository.findByDriverIdAndActivoTrue(driverId)
-                                .map(ResponseEntity::ok)
+                                .<ResponseEntity<?>>map(ResponseEntity::ok)
                                 .orElseGet(() -> ResponseEntity.notFound().build());
         }
 
