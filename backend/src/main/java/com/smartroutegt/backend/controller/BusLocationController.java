@@ -22,6 +22,7 @@ import com.smartroutegt.backend.repository.RouteStopRepository;
 import com.smartroutegt.backend.repository.StopVisitRepository;
 import com.smartroutegt.backend.repository.TripRepository;
 import com.smartroutegt.backend.repository.ViolationRepository;
+import com.smartroutegt.backend.service.ResourceAuthorizationService;
 import com.smartroutegt.backend.service.StopVisitService;
 
 @RestController
@@ -37,6 +38,7 @@ public class BusLocationController {
         private final RouteStopRepository routeStopRepository;
         private final StopVisitRepository stopVisitRepository;
         private final StopVisitService stopVisitService;
+        private final ResourceAuthorizationService authorizationService;
 
         public BusLocationController(
                         BusLocationRepository locationRepository,
@@ -44,7 +46,8 @@ public class BusLocationController {
                         ViolationRepository violationRepository,
                         RouteStopRepository routeStopRepository,
                         StopVisitRepository stopVisitRepository,
-                        StopVisitService stopVisitService) {
+                        StopVisitService stopVisitService,
+                        ResourceAuthorizationService authorizationService) {
 
                 this.locationRepository = locationRepository;
                 this.tripRepository = tripRepository;
@@ -52,6 +55,7 @@ public class BusLocationController {
                 this.routeStopRepository = routeStopRepository;
                 this.stopVisitRepository = stopVisitRepository;
                 this.stopVisitService = stopVisitService;
+                this.authorizationService = authorizationService;
         }
 
         @PostMapping
@@ -66,6 +70,12 @@ public class BusLocationController {
                 if (trip == null) {
                         return ResponseEntity.badRequest()
                                         .body("El viaje no existe");
+                }
+                if (!authorizationService.canAccessDriver(
+                                trip.getDriver().getId())) {
+
+                        return ResponseEntity.status(403)
+                                        .body("No tiene permiso para registrar ubicación en este viaje");
                 }
 
                 if (!trip.isActivo()) {
@@ -128,7 +138,7 @@ public class BusLocationController {
 
                         stopVisitService.procesarUbicacion(
                                         trip,
-                                        routeStop.getStop(),
+                                        routeStop,
                                         locationActual.getLatitud(),
                                         locationActual.getLongitud(),
                                         locationActual.getFechaHora());

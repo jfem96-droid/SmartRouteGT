@@ -1,15 +1,19 @@
 package com.smartroutegt.backend.entity;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-
-import java.time.LocalDateTime;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 
 @Entity
+@Table(name = "passenger_alert")
 public class PassengerAlert {
 
     @Id
@@ -20,12 +24,27 @@ public class PassengerAlert {
     private Tipo tipo;
 
     private String descripcion;
+
     private Double latitud;
+
     private Double longitud;
+
+    private Double busLatitud;
+
+    private Double busLongitud;
+
     private LocalDateTime fechaHora;
 
     @Enumerated(EnumType.STRING)
     private Estado estado;
+
+    @ManyToOne
+    @JoinColumn(name = "trip_id")
+    private Trip trip;
+
+    @ManyToOne
+    @JoinColumn(name = "bus_id")
+    private Bus bus;
 
     public enum Estado {
         PENDING,
@@ -81,6 +100,22 @@ public class PassengerAlert {
         this.longitud = longitud;
     }
 
+    public Double getBusLatitud() {
+        return busLatitud;
+    }
+
+    public void setBusLatitud(Double busLatitud) {
+        this.busLatitud = busLatitud;
+    }
+
+    public Double getBusLongitud() {
+        return busLongitud;
+    }
+
+    public void setBusLongitud(Double busLongitud) {
+        this.busLongitud = busLongitud;
+    }
+
     public LocalDateTime getFechaHora() {
         return fechaHora;
     }
@@ -95,5 +130,21 @@ public class PassengerAlert {
 
     public void setEstado(Estado estado) {
         this.estado = estado;
+    }
+
+    public Trip getTrip() {
+        return trip;
+    }
+
+    public void setTrip(Trip trip) {
+        this.trip = trip;
+    }
+
+    public Bus getBus() {
+        return bus;
+    }
+
+    public void setBus(Bus bus) {
+        this.bus = bus;
     }
 }

@@ -1,6 +1,8 @@
 package com.smartroutegt.backend.entity;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -9,6 +11,12 @@ import jakarta.persistence.ManyToOne;
 
 @Entity
 public class RouteStop {
+
+    public enum TipoParada {
+        NORMAL,
+        ALTA_DEMANDA,
+        REGULADORA
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,6 +32,15 @@ public class RouteStop {
 
     private int orden;
 
+    @Enumerated(EnumType.STRING)
+    private TipoParada tipoParada = TipoParada.NORMAL;
+
+    private int tiempoMinimoSegundos = 15;
+
+    private int tiempoObjetivoSegundos = 20;
+
+    private int tiempoMaximoSegundos = 30;
+
     public RouteStop() {
     }
 
@@ -31,6 +48,10 @@ public class RouteStop {
         this.route = route;
         this.stop = stop;
         this.orden = orden;
+        this.tipoParada = TipoParada.NORMAL;
+        this.tiempoMinimoSegundos = 15;
+        this.tiempoObjetivoSegundos = 20;
+        this.tiempoMaximoSegundos = 30;
     }
 
     public Long getId() {
@@ -59,5 +80,37 @@ public class RouteStop {
 
     public void setOrden(int orden) {
         this.orden = orden;
+    }
+
+    public TipoParada getTipoParada() {
+        return tipoParada;
+    }
+
+    public void setTipoParada(TipoParada tipoParada) {
+        this.tipoParada = tipoParada;
+    }
+
+    public int getTiempoMinimoSegundos() {
+        return tiempoMinimoSegundos;
+    }
+
+    public void setTiempoMinimoSegundos(int tiempoMinimoSegundos) {
+        this.tiempoMinimoSegundos = tiempoMinimoSegundos;
+    }
+
+    public int getTiempoObjetivoSegundos() {
+        return tiempoObjetivoSegundos;
+    }
+
+    public void setTiempoObjetivoSegundos(int tiempoObjetivoSegundos) {
+        this.tiempoObjetivoSegundos = tiempoObjetivoSegundos;
+    }
+
+    public int getTiempoMaximoSegundos() {
+        return tiempoMaximoSegundos;
+    }
+
+    public void setTiempoMaximoSegundos(int tiempoMaximoSegundos) {
+        this.tiempoMaximoSegundos = tiempoMaximoSegundos;
     }
 }

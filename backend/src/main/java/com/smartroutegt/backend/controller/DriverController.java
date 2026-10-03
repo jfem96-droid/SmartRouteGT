@@ -3,6 +3,8 @@ package com.smartroutegt.backend.controller;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -12,7 +14,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.smartroutegt.backend.entity.AuditLog;
 import com.smartroutegt.backend.entity.Driver;
+import com.smartroutegt.backend.repository.AuditLogRepository;
 import com.smartroutegt.backend.repository.DriverRepository;
 import com.smartroutegt.backend.service.BubbleSortService;
 
@@ -22,13 +26,16 @@ public class DriverController {
 
     private final DriverRepository driverRepository;
     private final BubbleSortService bubbleSortService;
+    private final AuditLogRepository auditLogRepository;
 
     public DriverController(
             DriverRepository driverRepository,
-            BubbleSortService bubbleSortService) {
+            BubbleSortService bubbleSortService,
+            AuditLogRepository auditLogRepository) {
 
         this.driverRepository = driverRepository;
         this.bubbleSortService = bubbleSortService;
+        this.auditLogRepository = auditLogRepository;
     }
 
     @GetMapping
@@ -108,7 +115,9 @@ public class DriverController {
     }
 
     @PutMapping("/{id}/activar")
-    public ResponseEntity<?> activarPiloto(@PathVariable Long id) {
+    public ResponseEntity<?> activarPiloto(
+            @PathVariable Long id,
+            @RequestBody ReactivacionRequest request) {
 
         Driver driver = driverRepository.findById(id).orElse(null);
 
@@ -116,9 +125,60 @@ public class DriverController {
             return ResponseEntity.notFound().build();
         }
 
+        if (driver.isActivo()) {
+            return ResponseEntity.badRequest()
+                    .body("El piloto ya está activo");
+        }
+
+        if (request.getJustificacion() == null
+                || request.getJustificacion().trim().isEmpty()) {
+
+            return ResponseEntity.badRequest()
+                    .body("La justificación es obligatoria");
+        }
+
         driver.setActivo(true);
         driverRepository.save(driver);
 
-        return ResponseEntity.ok("Piloto activado correctamente");
+        AuditLog auditLog = new AuditLog(
+                "REACTIVACION_PILOTO",
+                getAuthenticatedActor(),
+                request.getJustificacion().trim(),
+                "DRIVER",
+                driver.getId());
+
+        auditLogRepository.save(auditLog);
+
+        return ResponseEntity.ok(driver);
+    }
+
+    public static class ReactivacionRequest {
+
+        private String justificacion;
+
+        public String getJustificacion() {
+            return justificacion;
+        }
+
+        public void setJustificacion(String justificacion) {
+            this.justificacion = justificacion;
+        }
+
+    }
+
+    private String getAuthenticatedActor() {
+
+        Authentication authentication = SecurityContextHolder
+                .getContext()
+                .getAuthentication();
+
+        if (authentication == null
+                || !authentication.isAuthenticated()
+                || authentication.getName() == null) {
+
+            return "SISTEMA";
+        }
+
+        return authentication.getName();
     }
 }
