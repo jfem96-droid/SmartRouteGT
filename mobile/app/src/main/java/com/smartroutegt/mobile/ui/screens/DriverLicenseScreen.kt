@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -59,7 +61,16 @@ fun DriverLicenseScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "Identificación del piloto")
+        Text(
+            text = "Identificación del piloto",
+            style = MaterialTheme.typography.headlineMedium
+        )
+
+        Text(
+            text = "Ingresa tu número de licencia para consultar tu asignación.",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(top = 8.dp)
+        )
 
         OutlinedTextField(
             value = licencia,
@@ -73,13 +84,22 @@ fun DriverLicenseScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 24.dp),
-            singleLine = true
+            singleLine = true,
+            enabled = !cargando
         )
 
         if (error != null) {
             Text(
                 text = error!!,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(top = 8.dp)
+            )
+        }
+
+        if (cargando) {
+            CircularProgressIndicator(
+                modifier = Modifier.padding(top = 16.dp)
             )
         }
 

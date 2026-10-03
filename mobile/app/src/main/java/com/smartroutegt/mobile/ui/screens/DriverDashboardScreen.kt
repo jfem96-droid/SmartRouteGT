@@ -85,6 +85,10 @@ fun DriverDashboardScreen(
         mutableStateOf(emptyList<RouteStopDto>())
     }
 
+    var cargandoParadas by remember {
+        mutableStateOf(true)
+    }
+
     var errorParadas by remember {
         mutableStateOf<String?>(null)
     }
@@ -110,6 +114,7 @@ fun DriverDashboardScreen(
         } catch (exception: IOException) {
             errorParadas = "No se pudo conectar con el servidor"
         }
+        cargandoParadas = false
     }
 
     LaunchedEffect(viajeActual?.id) {
@@ -122,6 +127,8 @@ fun DriverDashboardScreen(
         }
 
         try {
+            estadoProximaParada = "Consultando próxima parada..."
+            
             val siguienteParada = driverApiService.getNextStop(tripId)
 
             proximaParada = siguienteParada
@@ -293,7 +300,10 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Text(text = "Piloto: $pilotoNombre")
+        Text(
+            text = "Piloto: $pilotoNombre",
+            style = MaterialTheme.typography.titleMedium
+        )
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -326,14 +336,17 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
                 text = "Estado del viaje: $estadoViaje",
                 style = MaterialTheme.typography.bodyLarge
             )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Sanciones confirmadas: $sancionesConfirmadas",
+                style = MaterialTheme.typography.bodyLarge
+            )
         }
     }
 
     Spacer(modifier = Modifier.height(16.dp))
-
-        Text(text = "Sanciones confirmadas: $sancionesConfirmadas")
-
-        Spacer(modifier = Modifier.height(12.dp))
 
         Card(
             modifier = Modifier.fillMaxWidth()
@@ -368,6 +381,10 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 when {
+                    cargandoParadas -> {
+                        Text(text = "Cargando paradas...")
+                    }
+
                     errorParadas != null -> {
                         Text(text = errorParadas!!)
                     }
@@ -659,6 +676,8 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
                 if (errorViaje != null) {
                     Text(
                         text = errorViaje!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(top = 8.dp)
                     )
                 }
