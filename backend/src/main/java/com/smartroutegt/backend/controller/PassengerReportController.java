@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -163,7 +165,7 @@ public class PassengerReportController {
 
         AuditLog audit = new AuditLog();
         audit.setAccion("PASSENGER_REPORT_UNDER_REVIEW");
-        audit.setActor("ADMIN");
+        audit.setActor(getAuthenticatedActor());
         audit.setDescripcion("Reporte de pasajero enviado a revisión");
         audit.setEntidad("PASSENGER_REPORT");
         audit.setEntidadId(report.getId());
@@ -206,7 +208,7 @@ public class PassengerReportController {
 
         AuditLog audit = new AuditLog();
         audit.setAccion("PASSENGER_REPORT_RESOLVED");
-        audit.setActor("ADMIN");
+        audit.setActor(getAuthenticatedActor());
         audit.setDescripcion("Reporte resuelto: " + resolucion);
         audit.setEntidad("PASSENGER_REPORT");
         audit.setEntidadId(report.getId());
@@ -249,7 +251,7 @@ public class PassengerReportController {
 
         AuditLog audit = new AuditLog();
         audit.setAccion("PASSENGER_REPORT_REJECTED");
-        audit.setActor("ADMIN");
+        audit.setActor(getAuthenticatedActor());
         audit.setDescripcion("Reporte rechazado: " + resolucion);
         audit.setEntidad("PASSENGER_REPORT");
         audit.setEntidadId(report.getId());
@@ -321,4 +323,23 @@ public class PassengerReportController {
             this.resolucion = resolucion;
         }
     }
+
+    private String getAuthenticatedActor() {
+
+        Authentication authentication = SecurityContextHolder
+                .getContext()
+                .getAuthentication();
+
+        if (authentication == null
+                || !authentication.isAuthenticated()
+                || authentication.getName() == null
+                || authentication.getName().isBlank()
+                || "anonymousUser".equals(authentication.getName())) {
+
+            return "SISTEMA";
+        }
+
+        return authentication.getName();
+    }
+
 }

@@ -3,6 +3,8 @@ package com.smartroutegt.backend.controller;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -140,7 +142,7 @@ public class DriverController {
 
         AuditLog auditLog = new AuditLog(
                 "REACTIVACION_PILOTO",
-                "ADMIN",
+                getAuthenticatedActor(),
                 request.getJustificacion().trim(),
                 "DRIVER",
                 driver.getId());
@@ -162,5 +164,21 @@ public class DriverController {
             this.justificacion = justificacion;
         }
 
+    }
+
+    private String getAuthenticatedActor() {
+
+        Authentication authentication = SecurityContextHolder
+                .getContext()
+                .getAuthentication();
+
+        if (authentication == null
+                || !authentication.isAuthenticated()
+                || authentication.getName() == null) {
+
+            return "SISTEMA";
+        }
+
+        return authentication.getName();
     }
 }

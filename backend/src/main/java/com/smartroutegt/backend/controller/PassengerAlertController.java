@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -188,7 +190,7 @@ public class PassengerAlertController {
 
         AuditLog auditLog = new AuditLog(
                 "PASSENGER_ALERT_REVIEWED",
-                "ADMIN",
+                getAuthenticatedActor(),
                 "Alerta de pasajero enviada a revisión",
                 "PASSENGER_ALERT",
                 passengerAlert.getId());
@@ -221,7 +223,7 @@ public class PassengerAlertController {
 
         AuditLog auditLog = new AuditLog(
                 "PASSENGER_ALERT_RESOLVED",
-                "ADMIN",
+                getAuthenticatedActor(),
                 "Alerta de pasajero resuelta",
                 "PASSENGER_ALERT",
                 passengerAlert.getId());
@@ -270,4 +272,23 @@ public class PassengerAlertController {
             this.descripcion = descripcion;
         }
     }
+
+    private String getAuthenticatedActor() {
+
+        Authentication authentication = SecurityContextHolder
+                .getContext()
+                .getAuthentication();
+
+        if (authentication == null
+                || !authentication.isAuthenticated()
+                || authentication.getName() == null
+                || authentication.getName().isBlank()
+                || "anonymousUser".equals(authentication.getName())) {
+
+            return "SISTEMA";
+        }
+
+        return authentication.getName();
+    }
+
 }
