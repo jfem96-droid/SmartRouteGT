@@ -336,7 +336,7 @@ fetch("http://localhost:8080/api/buses")
                         : '<span class="badge bg-secondary">Inactivo</span>';
 
                     const velocidad = ubicacion
-                        ? `${ubicacion.velocidad} km/h`
+                        ? `${Number(ubicacion.velocidad).toFixed(1)} km/h`
                         : "Sin registro";
 
                     const latitud = ubicacion
@@ -464,3 +464,278 @@ if (marcador) {
 cargarBusesEnMapa();
 
 setInterval(cargarBusesEnMapa, 10000);
+
+// Cargar paradas
+fetch("http://localhost:8080/api/stops")
+    .then(response => {
+        if (!response.ok) {
+            throw new Error("Error al cargar las paradas");
+        }
+        return response.json();
+    })
+    .then(paradas => {
+        const tablaParadas = document.getElementById("tablaParadas");
+
+        if (paradas.length === 0) {
+            tablaParadas.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center text-muted">
+                        No hay paradas registradas.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tablaParadas.innerHTML = "";
+
+        paradas.forEach(parada => {
+            const fila = document.createElement("tr");
+
+            fila.innerHTML = `
+                <td>${parada.nombre}</td>
+                <td>${parada.latitud}</td>
+                <td>${parada.longitud}</td>
+                <td>${parada.radioPermitido}</td>
+                <td>${parada.activa ? "Activa" : "Inactiva"}</td>
+            `;
+
+            tablaParadas.appendChild(fila);
+        });
+    })
+    .catch(error => {
+        console.error("Error al cargar paradas:", error);
+
+        const tablaParadas = document.getElementById("tablaParadas");
+
+        tablaParadas.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center text-danger">
+                    No se pudieron cargar las paradas.
+                </td>
+            </tr>
+        `;
+    });
+
+    // Cargar buses
+fetch("http://localhost:8080/api/buses")
+    .then(response => {
+        if (!response.ok) {
+            throw new Error("Error al cargar los buses");
+        }
+        return response.json();
+    })
+    .then(buses => {
+        const tablaBuses = document.getElementById("tablaBuses");
+
+        if (buses.length === 0) {
+            tablaBuses.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center text-muted">
+                        No hay buses registrados.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tablaBuses.innerHTML = "";
+
+        buses.forEach(bus => {
+            const fila = document.createElement("tr");
+
+            fila.innerHTML = `
+                <td>${bus.id}</td>
+                <td>${bus.codigo}</td>
+                <td>${bus.placa}</td>
+                <td>${bus.capacidad}</td>
+                <td>${bus.activa ? "Activo" : "Inactivo"}</td>
+            `;
+
+            tablaBuses.appendChild(fila);
+        });
+    })
+    .catch(error => {
+        console.error("Error al cargar buses:", error);
+
+        const tablaBuses = document.getElementById("tablaBuses");
+
+        tablaBuses.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center text-danger">
+                    No se pudieron cargar los buses.
+                </td>
+            </tr>
+        `;
+    });
+
+    // Cargar pilotos
+fetch("http://localhost:8080/api/drivers")
+    .then(response => {
+        if (!response.ok) {
+            throw new Error("Error al cargar los pilotos");
+        }
+        return response.json();
+    })
+    .then(pilotos => {
+        const tablaPilotos = document.getElementById("tablaPilotos");
+
+        if (pilotos.length === 0) {
+            tablaPilotos.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center text-muted">
+                        No hay pilotos registrados.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tablaPilotos.innerHTML = "";
+
+        pilotos.forEach(piloto => {
+            const fila = document.createElement("tr");
+
+            fila.innerHTML = `
+                <td>${piloto.id}</td>
+                <td>${piloto.nombre}</td>
+                <td>${piloto.licencia}</td>
+                <td>${piloto.telefono}</td>
+                <td>${piloto.sancionesConfirmadas}</td>
+                <td>${piloto.activo ? "Activo" : "Inactivo"}</td>
+            `;
+
+            tablaPilotos.appendChild(fila);
+        });
+    })
+    .catch(error => {
+        console.error("Error al cargar pilotos:", error);
+
+        const tablaPilotos = document.getElementById("tablaPilotos");
+
+        tablaPilotos.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center text-danger">
+                    No se pudieron cargar los pilotos.
+                </td>
+            </tr>
+        `;
+    });
+
+    // Cargar sanciones
+fetch("http://localhost:8080/api/violations")
+    .then(response => {
+        if (!response.ok) {
+            throw new Error("Error al cargar las sanciones");
+        }
+        return response.json();
+    })
+    .then(sanciones => {
+        const tablaSanciones = document.getElementById("tablaSanciones");
+
+        if (sanciones.length === 0) {
+            tablaSanciones.innerHTML = `
+                <tr>
+                    <td colspan="9" class="text-center text-muted">
+                        No hay sanciones registradas.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tablaSanciones.innerHTML = "";
+
+        sanciones.forEach(sancion => {
+            const fila = document.createElement("tr");
+
+            fila.innerHTML = `
+                <td>${sancion.id}</td>
+                <td>${sancion.driver?.nombre ?? "-"}</td>
+                <td>${sancion.bus?.codigo ?? "-"}</td>
+                <td>${sancion.tipo ?? "-"}</td>
+                <td>${sancion.descripcion ?? "-"}</td>
+                <td>${sancion.velocidadRegistrada != null
+                    ? Number(sancion.velocidadRegistrada).toFixed(1) + " km/h"
+                    : "-"}</td>
+                <td>${sancion.limitePermitido != null
+                    ? Number(sancion.limitePermitido).toFixed(1) + " km/h"
+                    : "-"}</td>
+                <td>${sancion.fechaHora
+                    ? new Date(sancion.fechaHora).toLocaleString()
+                    : "-"}</td>
+                <td>${sancion.estado ?? "-"}</td>
+            `;
+
+            tablaSanciones.appendChild(fila);
+        });
+    })
+    .catch(error => {
+        console.error("Error al cargar sanciones:", error);
+
+        const tablaSanciones = document.getElementById("tablaSanciones");
+
+        tablaSanciones.innerHTML = `
+            <tr>
+                <td colspan="9" class="text-center text-danger">
+                    No se pudieron cargar las sanciones.
+                </td>
+            </tr>
+        `;
+    });
+
+    // Cargar alertas de pasajeros
+fetch("http://localhost:8080/api/passenger-alerts")
+    .then(response => {
+        if (!response.ok) {
+            throw new Error("Error al cargar las alertas");
+        }
+        return response.json();
+    })
+    .then(alertas => {
+        const tablaAlertas = document.getElementById("tablaAlertas");
+
+        if (alertas.length === 0) {
+            tablaAlertas.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center text-muted">
+                        No hay alertas de pasajeros registradas.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tablaAlertas.innerHTML = "";
+
+        alertas.forEach(alerta => {
+            const fila = document.createElement("tr");
+
+            fila.innerHTML = `
+                <td>${alerta.id}</td>
+                <td>${alerta.tipo ?? "-"}</td>
+                <td>${alerta.descripcion ?? "-"}</td>
+                <td>${alerta.latitud ?? "-"}</td>
+                <td>${alerta.longitud ?? "-"}</td>
+                <td>${alerta.fechaHora
+                    ? new Date(alerta.fechaHora).toLocaleString()
+                    : "-"}</td>
+                <td>${alerta.estado ?? "-"}</td>
+            `;
+
+            tablaAlertas.appendChild(fila);
+        });
+    })
+    .catch(error => {
+        console.error("Error al cargar alertas:", error);
+
+        const tablaAlertas = document.getElementById("tablaAlertas");
+
+        tablaAlertas.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center text-danger">
+                    No se pudieron cargar las alertas.
+                </td>
+            </tr>
+        `;
+    });
