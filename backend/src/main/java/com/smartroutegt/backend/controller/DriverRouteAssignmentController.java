@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -105,9 +106,58 @@ public class DriverRouteAssignmentController {
                     .body("La ruta está inactiva");
         }
 
+        // Un bus no puede estar asignado activamente a otro piloto.
+        List<DriverRouteAssignment> busAssignments =
+                driverRouteAssignmentRepository.findByBusIdAndActivaTrue(bus.getId());
+
+        boolean busOcupado = busAssignments.stream()
+                .anyMatch(a -> !a.getDriver().getId().equals(driver.getId()));
+
+        if (busOcupado) {
+            return ResponseEntity.badRequest()
+                    .body("El bus ya tiene una asignación activa con otro piloto");
+        }
+
+        // Al cambiar la asignación del piloto, conservar la anterior
+        // como historial en lugar de eliminarla.
+        List<DriverRouteAssignment> anteriores =
+                driverRouteAssignmentRepository.findByDriverIdAndActivaTrue(driver.getId());
+
+        for (DriverRouteAssignment anterior : anteriores) {
+            anterior.setActiva(false);
+        }
+
+        if (!anteriores.isEmpty()) {
+            driverRouteAssignmentRepository.saveAll(anteriores);
+        }
+
         DriverRouteAssignment assignment = new DriverRouteAssignment(driver, bus, route);
 
         return ResponseEntity.ok(
                 driverRouteAssignmentRepository.save(assignment));
     }
+
+
+    @PutMapping("/{id}/deactivate")
+    public ResponseEntity<?> desasignar(
+            @PathVariable Long id) {
+
+        DriverRouteAssignment assignment =
+                driverRouteAssignmentRepository.findById(id).orElse(null);
+
+        if (assignment == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        if (!assignment.isActiva()) {
+            return ResponseEntity.badRequest()
+                    .body("La asignación ya está inactiva");
+        }
+
+        assignment.setActiva(false);
+        driverRouteAssignmentRepository.save(assignment);
+
+        return ResponseEntity.ok("Piloto desasignado correctamente");
+    }
+
 }

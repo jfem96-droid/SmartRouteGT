@@ -11,4 +11,11 @@ public interface ViolationRepository extends JpaRepository<Violation, Long> {
             Long tripId,
             String tipo,
             LocalDateTime fechaHora);
+
+    boolean existsByDriverId(Long driverId);
+
+    boolean existsByBusId(Long busId);
+
+    long countByBusId(Long busId);
+    long countByDriverId(Long driverId);
 }

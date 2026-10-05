@@ -40,4 +40,8 @@ public interface BusLocationRepository
             LocalDateTime fechaHora);
 
     Optional<BusLocation> findFirstByTripIdOrderByFechaHoraAsc(Long tripId);
+
+    boolean existsByBusId(Long busId);
+
+    long countByBusId(Long busId);
 }

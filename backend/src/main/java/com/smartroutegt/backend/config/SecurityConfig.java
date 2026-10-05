@@ -49,7 +49,7 @@ public class SecurityConfig {
                                                                 "/error")
                                                 .permitAll()
 
-                                                .requestMatchers("/api/users/**")
+                                                .requestMatchers("/api/users/**", "/api/admin/permanent-delete/**")
                                                 .hasRole("ADMIN")
 
                                                 .requestMatchers(
@@ -112,6 +112,8 @@ public class SecurityConfig {
 
                                                 .requestMatchers(
                                                                 HttpMethod.GET,
+                                                                "/api/audit-logs",
+                                                                "/api/trips/active",
                                                                 "/api/monitoring/**",
                                                                 "/api/violations/**",
                                                                 "/api/passenger-alerts",

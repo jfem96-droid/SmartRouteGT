@@ -11,6 +11,18 @@ public interface DriverRouteAssignmentRepository
 
     List<DriverRouteAssignment> findByDriverId(Long driverId);
 
+    List<DriverRouteAssignment> findByDriverIdAndActivaTrue(Long driverId);
+
     List<DriverRouteAssignment> findByBusIdAndActivaTrue(Long busId);
 
+
+    boolean existsByDriverId(Long driverId);
+
+    boolean existsByBusId(Long busId);
+
+    boolean existsByRouteId(Long routeId);
+
+    long countByBusId(Long busId);
+    long countByDriverId(Long driverId);
+    long countByRouteId(Long routeId);
 }

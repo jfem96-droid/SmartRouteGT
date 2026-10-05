@@ -3,6 +3,7 @@ package com.smartroutegt.backend.controller;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -66,6 +67,14 @@ public class RouteStopController {
                     .body("El orden debe ser mayor que cero");
         }
 
+        if (routeStopRepository.existsByRouteIdAndStopId(routeId, stopId)) {
+            return ResponseEntity.status(409).body("Esta parada ya pertenece a la ruta");
+        }
+
+        if (routeStopRepository.existsByRouteIdAndOrden(routeId, orden)) {
+            return ResponseEntity.status(409).body("Ya existe una parada con ese número de orden en la ruta");
+        }
+
         RouteStop routeStop = new RouteStop(
                 route,
                 stop,
@@ -81,6 +90,14 @@ public class RouteStopController {
 
         return routeStopRepository
                 .findByRouteIdOrderByOrdenAsc(routeId);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> quitarParadaDeRuta(@PathVariable Long id) {
+        RouteStop routeStop = routeStopRepository.findById(id).orElse(null);
+        if (routeStop == null) return ResponseEntity.notFound().build();
+        routeStopRepository.delete(routeStop);
+        return ResponseEntity.ok("Parada quitada de la ruta");
     }
 
     @PutMapping("/{id}/configuracion")

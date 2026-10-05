@@ -1,1 +1,4 @@
 .DS_Store
+
+# Secretos locales SmartRoute
+backend/.env

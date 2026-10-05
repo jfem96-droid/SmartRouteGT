@@ -20,4 +20,8 @@ public interface StopVisitRepository
     boolean existsByTripIdAndStopIdAndCumplidaTrue(
             Long tripId,
             Long stopId);
+
+    boolean existsByStopId(Long stopId);
+
+    long countByStopId(Long stopId);
 }

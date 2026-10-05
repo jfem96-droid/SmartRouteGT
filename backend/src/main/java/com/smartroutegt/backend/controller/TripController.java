@@ -141,6 +141,11 @@ public class TripController {
                 return ResponseEntity.ok(viajeFinalizado);
         }
 
+        @GetMapping("/active")
+        public List<Trip> obtenerViajesActivos() {
+                return tripRepository.findByActivoTrue();
+        }
+
         @GetMapping("/driver/{driverId}/active")
         public ResponseEntity<?> obtenerViajeActivoPorPiloto(
                         @PathVariable Long driverId) {
