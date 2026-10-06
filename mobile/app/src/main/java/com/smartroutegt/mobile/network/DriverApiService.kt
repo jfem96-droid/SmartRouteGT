@@ -9,14 +9,42 @@ class DriverApiService(
     suspend fun getDriverByLicense(
         licencia: String
     ): DriverDto {
-        return api.getDriverByLicense(licencia)
+        android.util.Log.d(
+            "SmartRouteDriver",
+            "Consultando piloto por licencia"
+        )
+
+        return try {
+            api.getDriverByLicense(licencia)
+        } catch (exception: retrofit2.HttpException) {
+            android.util.Log.e(
+                "SmartRouteDriver",
+                "getDriverByLicense -> HTTP ${exception.code()}",
+                exception
+            )
+            throw exception
+        }
     }
 
     suspend fun getActiveAssignment(
         driverId: Long
     ): DriverRouteAssignmentDto? {
-        return api.getAssignmentsByDriver(driverId)
-            .firstOrNull { assignment -> assignment.activa }
+        android.util.Log.d(
+            "SmartRouteDriver",
+            "Consultando asignaciones del driverId=$driverId"
+        )
+
+        return try {
+            api.getAssignmentsByDriver(driverId)
+                .firstOrNull { assignment -> assignment.activa }
+        } catch (exception: retrofit2.HttpException) {
+            android.util.Log.e(
+                "SmartRouteDriver",
+                "getActiveAssignment -> HTTP ${exception.code()} driverId=$driverId",
+                exception
+            )
+            throw exception
+        }
     }
 
     suspend fun getActiveTrip(

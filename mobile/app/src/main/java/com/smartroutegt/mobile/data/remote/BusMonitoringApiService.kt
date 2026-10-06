@@ -4,6 +4,6 @@ import retrofit2.http.GET
 
 interface BusMonitoringApiService {
 
-    @GET("api/monitoring/buses")
+    @GET("api/passenger/buses")
     suspend fun getBuses(): List<BusMonitoringDto>
 }

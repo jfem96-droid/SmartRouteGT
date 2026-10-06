@@ -33,6 +33,14 @@ public class PassengerAlert {
 
     private Double busLongitud;
 
+    private Long passengerId;
+
+    private String passengerNombre;
+
+    private String passengerEmail;
+
+    private String passengerTelefono;
+
     private LocalDateTime fechaHora;
 
     @Enumerated(EnumType.STRING)
@@ -114,6 +122,38 @@ public class PassengerAlert {
 
     public void setBusLongitud(Double busLongitud) {
         this.busLongitud = busLongitud;
+    }
+
+    public Long getPassengerId() {
+        return passengerId;
+    }
+
+    public void setPassengerId(Long passengerId) {
+        this.passengerId = passengerId;
+    }
+
+    public String getPassengerNombre() {
+        return passengerNombre;
+    }
+
+    public void setPassengerNombre(String passengerNombre) {
+        this.passengerNombre = passengerNombre;
+    }
+
+    public String getPassengerEmail() {
+        return passengerEmail;
+    }
+
+    public void setPassengerEmail(String passengerEmail) {
+        this.passengerEmail = passengerEmail;
+    }
+
+    public String getPassengerTelefono() {
+        return passengerTelefono;
+    }
+
+    public void setPassengerTelefono(String passengerTelefono) {
+        this.passengerTelefono = passengerTelefono;
     }
 
     public LocalDateTime getFechaHora() {

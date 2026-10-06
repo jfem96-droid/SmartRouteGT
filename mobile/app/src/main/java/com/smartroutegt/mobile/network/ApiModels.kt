@@ -76,5 +76,11 @@ data class NextStopDto(
     val latitud: Double,
     val longitud: Double,
     val radioPermitido: Double,
-    val distanciaMetros: Double?
+    val distanciaMetros: Double?,
+    val velocidadActualKmh: Double? = null,
+    val velocidadCalculoKmh: Double? = null,
+    val etaSegundos: Long? = null,
+    val etaMinutos: Long? = null,
+    val estadoEta: String? = null,
+    val ultimaActualizacion: String? = null
 )

@@ -216,6 +216,20 @@ public class UserController {
         user.setNombre(request.getNombre().trim());
         user.setEmail(email);
 
+        if (request.getTelefono() != null) {
+            String telefono = request.getTelefono().trim();
+
+            if (!telefono.isEmpty()
+                    && !telefono.matches("[0-9+()\\- ]{8,20}")) {
+
+                return ResponseEntity.badRequest()
+                        .body("El teléfono no tiene un formato válido");
+            }
+
+            user.setTelefono(
+                    telefono.isEmpty() ? null : telefono);
+        }
+
         User savedUser = userRepository.save(user);
 
         registrarAuditoria(
@@ -433,6 +447,7 @@ public class UserController {
         response.put("id", user.getId());
         response.put("nombre", user.getNombre());
         response.put("email", user.getEmail());
+        response.put("telefono", user.getTelefono());
         response.put("role", user.getRole());
         response.put("activo", user.isActivo());
         response.put("fechaCreacion", user.getFechaCreacion());
@@ -520,6 +535,7 @@ public class UserController {
 
         private String nombre;
         private String email;
+        private String telefono;
 
         public String getNombre() {
             return nombre;
@@ -535,6 +551,14 @@ public class UserController {
 
         public void setEmail(String email) {
             this.email = email;
+        }
+
+        public String getTelefono() {
+            return telefono;
+        }
+
+        public void setTelefono(String telefono) {
+            this.telefono = telefono;
         }
     }
 

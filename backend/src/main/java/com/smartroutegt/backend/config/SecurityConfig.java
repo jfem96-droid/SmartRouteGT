@@ -45,12 +45,21 @@ public class SecurityConfig {
                                                 .requestMatchers(
                                                                 "/api/auth/register",
                                                                 "/api/auth/login",
+                                                        "/api/auth/verify-email",
+                                                        "/api/auth/resend-code",
+                                                        "/api/auth/forgot-password",
+                                                        "/api/auth/reset-password",
                                                                 "/api/status",
                                                                 "/error")
                                                 .permitAll()
 
                                                 .requestMatchers("/api/users/**", "/api/admin/permanent-delete/**")
                                                 .hasRole("ADMIN")
+
+                                                .requestMatchers(
+                                                                HttpMethod.GET,
+                                                                "/api/drivers/license/*")
+                                                .hasAnyRole("ADMIN", "DRIVER")
 
                                                 .requestMatchers(
                                                                 HttpMethod.GET,

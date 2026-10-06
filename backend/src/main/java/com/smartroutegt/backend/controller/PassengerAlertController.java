@@ -18,10 +18,12 @@ import com.smartroutegt.backend.entity.AuditLog;
 import com.smartroutegt.backend.entity.BusLocation;
 import com.smartroutegt.backend.entity.PassengerAlert;
 import com.smartroutegt.backend.entity.Trip;
+import com.smartroutegt.backend.entity.User;
 import com.smartroutegt.backend.repository.AuditLogRepository;
 import com.smartroutegt.backend.repository.BusLocationRepository;
 import com.smartroutegt.backend.repository.PassengerAlertRepository;
 import com.smartroutegt.backend.repository.TripRepository;
+import com.smartroutegt.backend.repository.UserRepository;
 
 @RestController
 @RequestMapping("/api/passenger-alerts")
@@ -31,22 +33,36 @@ public class PassengerAlertController {
     private final AuditLogRepository auditLogRepository;
     private final TripRepository tripRepository;
     private final BusLocationRepository busLocationRepository;
+    private final UserRepository userRepository;
 
     public PassengerAlertController(
             PassengerAlertRepository passengerAlertRepository,
             AuditLogRepository auditLogRepository,
             TripRepository tripRepository,
-            BusLocationRepository busLocationRepository) {
+            BusLocationRepository busLocationRepository,
+            UserRepository userRepository) {
 
         this.passengerAlertRepository = passengerAlertRepository;
         this.auditLogRepository = auditLogRepository;
         this.tripRepository = tripRepository;
         this.busLocationRepository = busLocationRepository;
+        this.userRepository = userRepository;
     }
 
     @PostMapping
     public ResponseEntity<PassengerAlert> crearAlerta(
             @RequestBody PassengerAlert passengerAlert) {
+
+        User passenger = getAuthenticatedPassenger();
+
+        if (passenger == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        passengerAlert.setPassengerId(passenger.getId());
+        passengerAlert.setPassengerNombre(passenger.getNombre());
+        passengerAlert.setPassengerEmail(passenger.getEmail());
+        passengerAlert.setPassengerTelefono(passenger.getTelefono());
 
         passengerAlert.setEstado(PassengerAlert.Estado.PENDING);
         passengerAlert.setFechaHora(LocalDateTime.now());
@@ -108,7 +124,19 @@ public class PassengerAlertController {
                     .body("No existe una ubicación GPS disponible para el bus");
         }
 
+        User passenger = getAuthenticatedPassenger();
+
+        if (passenger == null) {
+            return ResponseEntity.status(401)
+                    .body("No fue posible identificar al pasajero autenticado");
+        }
+
         PassengerAlert passengerAlert = new PassengerAlert();
+
+        passengerAlert.setPassengerId(passenger.getId());
+        passengerAlert.setPassengerNombre(passenger.getNombre());
+        passengerAlert.setPassengerEmail(passenger.getEmail());
+        passengerAlert.setPassengerTelefono(passenger.getTelefono());
 
         passengerAlert.setTipo(PassengerAlert.Tipo.SOS);
         passengerAlert.setDescripcion(
@@ -271,6 +299,27 @@ public class PassengerAlertController {
         public void setDescripcion(String descripcion) {
             this.descripcion = descripcion;
         }
+    }
+
+    private User getAuthenticatedPassenger() {
+
+        String email = getAuthenticatedActor();
+
+        if ("SISTEMA".equals(email)) {
+            return null;
+        }
+
+        User user = userRepository
+                .findByEmailIgnoreCase(email)
+                .orElse(null);
+
+        if (user == null
+                || !user.isActivo()
+                || user.getRole() != User.Role.PASSENGER) {
+            return null;
+        }
+
+        return user;
     }
 
     private String getAuthenticatedActor() {

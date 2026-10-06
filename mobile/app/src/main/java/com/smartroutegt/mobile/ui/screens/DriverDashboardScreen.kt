@@ -45,6 +45,8 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
+import org.osmdroid.views.overlay.Polyline
+import android.graphics.Color
 import org.osmdroid.config.Configuration
 import com.smartroutegt.mobile.network.NextStopDto
 
@@ -433,17 +435,32 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
                     },
                     update = { mapView ->
                         mapView.overlays.removeAll { overlay ->
-                            overlay is Marker
+                            overlay is Marker || overlay is Polyline
                         }
 
-                        paradas.forEach { routeStop ->
+                        val paradasOrdenadas = paradas.sortedBy { it.orden }
+
+                        if (paradasOrdenadas.size >= 2) {
+                            val lineaRuta = Polyline().apply {
+                                setPoints(
+                                    paradasOrdenadas.map { routeStop ->
+                                        GeoPoint(routeStop.stop.latitud, routeStop.stop.longitud)
+                                    }
+                                )
+                                outlinePaint.color = Color.parseColor("#2563EB")
+                                outlinePaint.strokeWidth = 10f
+                            }
+                            mapView.overlays.add(lineaRuta)
+                        }
+
+                        paradasOrdenadas.forEach { routeStop ->
                             val marcadorParada = Marker(mapView).apply {
                                 position = GeoPoint(
                                     routeStop.stop.latitud,
                                     routeStop.stop.longitud
                                 )
-                                title = routeStop.stop.nombre
-                                snippet = "Parada ${routeStop.orden}"
+                                title = "${routeStop.orden}. ${routeStop.stop.nombre}"
+                                snippet = "Checkpoint de parada"
                                 setAnchor(
                                     Marker.ANCHOR_CENTER,
                                     Marker.ANCHOR_BOTTOM

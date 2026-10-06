@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -18,6 +19,10 @@ import androidx.compose.runtime.LaunchedEffect
 import com.smartroutegt.mobile.data.remote.ApiClient
 import com.smartroutegt.mobile.data.remote.RouteDto
 import com.smartroutegt.mobile.data.remote.StopDto
+import com.smartroutegt.mobile.data.remote.BusMonitoringDto
+import com.smartroutegt.mobile.data.remote.RouteGeometryPointDto
+import com.smartroutegt.mobile.network.DriverApiService
+import com.smartroutegt.mobile.network.NextStopDto
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.rememberScrollState
@@ -75,6 +80,44 @@ fun RouteSearchScreen(
         mutableStateOf<List<Long>?>(null)
     }
 
+    var routeBuses by remember {
+        mutableStateOf<List<BusMonitoringDto>>(emptyList())
+    }
+
+    var selectedBus by remember {
+        mutableStateOf<BusMonitoringDto?>(null)
+    }
+
+    var nextStop by remember {
+        mutableStateOf<NextStopDto?>(null)
+    }
+
+    var isLoadingEta by remember {
+        mutableStateOf(false)
+    }
+
+    var etaError by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    val driverApiService = remember {
+        DriverApiService(
+            com.smartroutegt.mobile.network.ApiClient.create()
+        )
+    }
+
+    var geometryPoints by remember {
+        mutableStateOf<List<RouteGeometryPointDto>>(emptyList())
+    }
+
+    var isLoadingBuses by remember {
+        mutableStateOf(false)
+    }
+
+    var busLoadError by remember {
+        mutableStateOf<String?>(null)
+    }
+
     LaunchedEffect(Unit) {
         try {
             routes = ApiClient.routeApiService.getRoutes()
@@ -93,9 +136,16 @@ fun RouteSearchScreen(
 
         try {
             routeStops = ApiClient.routeStopApiService.getStopsByRoute(route.id)
+
+            geometryPoints =
+                ApiClient.routeApiService
+                    .getRouteGeometry(route.id)
+                    .points
+
         } catch (e: Exception) {
             routeStops = emptyList()
-            stopLoadError = "No se pudieron cargar las paradas de la ruta"
+            geometryPoints = emptyList()
+            stopLoadError = "No se pudieron cargar las paradas o geometría de la ruta"
         } finally {
             isLoadingStops = false
         }
@@ -149,6 +199,9 @@ fun RouteSearchScreen(
                             selectedOrigin = null
                             selectedDestination = null
                             routePath = null
+                            routeBuses = emptyList()
+                            selectedBus = null
+                            busLoadError = null
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -170,6 +223,7 @@ fun RouteSearchScreen(
                     PassengerMap(
                         routeStops = routeStops,
                         routePath = routePath,
+                        geometryPoints = geometryPoints,
                         modifier = Modifier.padding(top = 16.dp)
                     )
                 }
@@ -265,8 +319,12 @@ fun RouteSearchScreen(
 
                 coroutineScope.launch {
                     isSearchingRoute = true
+                    isLoadingBuses = true
                     routeSearchError = null
+                    busLoadError = null
                     routePath = null
+                    routeBuses = emptyList()
+                    selectedBus = null
 
                     try {
                         routePath = ApiClient.algorithmApiService.getRoutePath(
@@ -274,10 +332,31 @@ fun RouteSearchScreen(
                             origen = origin.id,
                             destino = destination.id
                         )
+
+                        if (!routePath.isNullOrEmpty()) {
+                            geometryPoints =
+                                ApiClient.routeApiService
+                                    .getRouteGeometry(
+                                        routeId = route.id,
+                                        originStopId = origin.id,
+                                        destinationStopId = destination.id
+                                    )
+                                    .points
+                        }
+
+                        val buses = ApiClient.busMonitoringApiService.getBuses()
+
+                        routeBuses = buses.filter { bus ->
+                            bus.routeId == route.id &&
+                            bus.viajeActivo &&
+                            bus.tripId != null
+                        }
+
                     } catch (e: Exception) {
-                        routeSearchError = "No se pudo calcular la ruta"
+                        routeSearchError = "No se pudo completar la búsqueda: ${e.message}"
                     } finally {
                         isSearchingRoute = false
+                        isLoadingBuses = false
                     }
                 }
             },
@@ -326,6 +405,162 @@ fun RouteSearchScreen(
                         text = stopName ?: "Parada ID: $stopId",
                         modifier = Modifier.padding(top = 8.dp)
                     )
+                }
+
+                Text(
+                    text = "Buses disponibles en esta ruta:",
+                    modifier = Modifier.padding(top = 24.dp)
+                )
+
+                when {
+                    isLoadingBuses -> {
+                        Text(
+                            text = "Buscando buses activos...",
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+
+                    busLoadError != null -> {
+                        Text(
+                            text = busLoadError ?: "",
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+
+                    routeBuses.isEmpty() -> {
+                        Text(
+                            text = "No hay buses realizando esta ruta en este momento.",
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+
+                    else -> {
+                        routeBuses.forEach { bus ->
+                            Button(
+                                onClick = {
+                                    selectedBus = bus
+                                    nextStop = null
+                                    etaError = null
+
+                                    val tripId = bus.tripId
+
+                                    if (tripId != null) {
+                                        coroutineScope.launch {
+                                            isLoadingEta = true
+
+                                            try {
+                                                nextStop =
+                                                    driverApiService
+                                                        .getNextStop(tripId)
+
+                                                if (nextStop == null) {
+                                                    etaError =
+                                                        "El viaje no tiene paradas pendientes"
+                                                }
+                                            } catch (e: Exception) {
+                                                nextStop = null
+                                                etaError =
+                                                    "No se pudo consultar el ETA: ${e.message}"
+                                            } finally {
+                                                isLoadingEta = false
+                                            }
+                                        }
+                                    } else {
+                                        etaError =
+                                            "El bus no tiene un viaje activo"
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp)
+                            ) {
+                                Text(
+                                    text = "${bus.codigo} · ${bus.placa}"
+                                )
+                            }
+                        }
+                    }
+                }
+
+                selectedBus?.let { bus ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(text = "Bus seleccionado: ${bus.codigo}")
+                            Text(text = "Placa: ${bus.placa}")
+                            Text(text = "Ruta: ${bus.ruta ?: "Sin información"}")
+                            Text(text = "Viaje activo: #${bus.tripId}")
+                            Text(
+                                text = "Velocidad: ${
+                                    bus.velocidad?.let { "%.1f km/h".format(it) }
+                                        ?: "Sin información"
+                                }"
+                            )
+
+                            when {
+                                isLoadingEta -> {
+                                    Text(
+                                        text = "Calculando ETA...",
+                                        modifier = Modifier.padding(top = 12.dp)
+                                    )
+                                }
+
+                                etaError != null -> {
+                                    Text(
+                                        text = etaError ?: "",
+                                        modifier = Modifier.padding(top = 12.dp)
+                                    )
+                                }
+
+                                nextStop != null -> {
+                                    val stop = nextStop!!
+
+                                    Text(
+                                        text = "Próxima parada: ${stop.parada}",
+                                        modifier = Modifier.padding(top = 12.dp)
+                                    )
+
+                                    Text(
+                                        text = "ETA a próxima parada: ${
+                                            stop.etaMinutos?.let { "$it min" }
+                                                ?: "No disponible"
+                                        }"
+                                    )
+
+                                    Text(
+                                        text = "Distancia: ${
+                                            stop.distanciaMetros?.let {
+                                                if (it >= 1000.0) {
+                                                    "%.2f km".format(it / 1000.0)
+                                                } else {
+                                                    "%.0f m".format(it)
+                                                }
+                                            } ?: "No disponible"
+                                        }"
+                                    )
+
+                                    Text(
+                                        text = "Velocidad GPS: ${
+                                            stop.velocidadActualKmh?.let {
+                                                "%.1f km/h".format(it)
+                                            } ?: "No disponible"
+                                        }"
+                                    )
+
+                                    Text(
+                                        text = "Estado ETA: ${
+                                            stop.estadoEta ?: "Sin información"
+                                        }"
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

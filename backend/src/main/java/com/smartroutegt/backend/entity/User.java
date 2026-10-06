@@ -27,6 +27,9 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @Column(length = 30)
+    private String telefono;
+
     @Column(nullable = false)
     private String password;
 
@@ -36,6 +39,9 @@ public class User {
 
     @Column(nullable = false)
     private boolean activo;
+
+    @Column(nullable = false)
+    private boolean emailVerified;
 
     @Column(nullable = false)
     private LocalDateTime fechaCreacion;
@@ -52,6 +58,7 @@ public class User {
 
     public User() {
         this.activo = true;
+        this.emailVerified = false;
         this.fechaCreacion = LocalDateTime.now();
     }
 
@@ -73,6 +80,14 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getTelefono() {
+        return telefono;
+    }
+
+    public void setTelefono(String telefono) {
+        this.telefono = telefono;
     }
 
     public String getPassword() {
@@ -97,6 +112,14 @@ public class User {
 
     public void setActivo(boolean activo) {
         this.activo = activo;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(boolean emailVerified) {
+        this.emailVerified = emailVerified;
     }
 
     public LocalDateTime getFechaCreacion() {

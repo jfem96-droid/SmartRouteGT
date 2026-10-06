@@ -16,6 +16,8 @@ import com.smartroutegt.backend.entity.User;
 import com.smartroutegt.backend.repository.DriverRepository;
 import com.smartroutegt.backend.repository.UserRepository;
 import com.smartroutegt.backend.service.JwtService;
+import com.smartroutegt.backend.service.EmailVerificationService;
+import com.smartroutegt.backend.service.EmailVerificationService.VerificationResult;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -25,16 +27,19 @@ public class AuthController {
     private final DriverRepository driverRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final EmailVerificationService emailVerificationService;
 
     public AuthController(
             UserRepository userRepository,
             DriverRepository driverRepository,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService) {
+            JwtService jwtService,
+            EmailVerificationService emailVerificationService) {
         this.userRepository = userRepository;
         this.driverRepository = driverRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.emailVerificationService = emailVerificationService;
     }
 
     @PostMapping("/register")
@@ -51,6 +56,18 @@ public class AuthController {
         if (request.getPassword() == null || request.getPassword().length() < 8) {
             return ResponseEntity.badRequest()
                     .body("La contraseña debe tener al menos 8 caracteres");
+        }
+
+        if (request.getTelefono() == null || request.getTelefono().trim().isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body("El teléfono es obligatorio");
+        }
+
+        String telefono = request.getTelefono().trim();
+
+        if (!telefono.matches("[0-9+()\\- ]{8,20}")) {
+            return ResponseEntity.badRequest()
+                    .body("El teléfono no tiene un formato válido");
         }
 
         if (request.getRole() == null || request.getRole().trim().isEmpty()) {
@@ -108,9 +125,11 @@ public class AuthController {
         User user = new User();
         user.setNombre(request.getNombre().trim());
         user.setEmail(email);
+        user.setTelefono(telefono);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(role);
         user.setActivo(true);
+        user.setEmailVerified(false);
         user.setFechaCreacion(LocalDateTime.now());
 
         if (role == User.Role.DRIVER) {
@@ -119,12 +138,24 @@ public class AuthController {
 
         User savedUser = userRepository.save(user);
 
+        try {
+            emailVerificationService.sendVerificationCode(savedUser);
+        } catch (Exception exception) {
+            userRepository.delete(savedUser);
+
+            return ResponseEntity.internalServerError()
+                    .body("No fue posible enviar el código de verificación. Intenta nuevamente.");
+        }
+
         Map<String, Object> response = new HashMap<>();
         response.put("id", savedUser.getId());
         response.put("nombre", savedUser.getNombre());
         response.put("email", savedUser.getEmail());
         response.put("role", savedUser.getRole());
         response.put("activo", savedUser.isActivo());
+        response.put("emailVerified", savedUser.isEmailVerified());
+        response.put("verificationRequired", true);
+        response.put("message", "Te enviamos un código de verificación a tu correo");
         response.put("fechaCreacion", savedUser.getFechaCreacion());
 
         if (savedUser.getDriver() != null) {
@@ -133,6 +164,124 @@ public class AuthController {
         }
 
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/verify-email")
+    public ResponseEntity<?> verifyEmail(
+            @RequestBody VerifyEmailRequest request) {
+
+        if (request.getEmail() == null ||
+                request.getEmail().trim().isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body("El correo es obligatorio");
+        }
+
+        if (request.getCode() == null ||
+                !request.getCode().matches("\\d{6}")) {
+            return ResponseEntity.badRequest()
+                    .body("El código debe contener 6 dígitos");
+        }
+
+        String email =
+                request.getEmail().trim().toLowerCase();
+
+        User user = userRepository
+                .findByEmailIgnoreCase(email)
+                .orElse(null);
+
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body("No existe una cuenta con este correo");
+        }
+
+        if (user.isEmailVerified()) {
+            return ResponseEntity.ok(
+                    Map.of(
+                            "verified", true,
+                            "message", "El correo ya se encuentra verificado"
+                    )
+            );
+        }
+
+        VerificationResult result =
+                emailVerificationService.verify(
+                        user,
+                        request.getCode()
+                );
+
+        switch (result) {
+
+            case SUCCESS:
+                user.setEmailVerified(true);
+                userRepository.save(user);
+
+                return ResponseEntity.ok(
+                        Map.of(
+                                "verified", true,
+                                "message", "Correo verificado correctamente"
+                        )
+                );
+
+            case EXPIRED:
+                return ResponseEntity.badRequest()
+                        .body("El código ha vencido");
+
+            case TOO_MANY_ATTEMPTS:
+                return ResponseEntity.badRequest()
+                        .body("Se alcanzó el máximo de intentos. Solicita un nuevo código");
+
+            case INVALID:
+                return ResponseEntity.badRequest()
+                        .body("El código ingresado no es correcto");
+
+            default:
+                return ResponseEntity.badRequest()
+                        .body("No existe un código de verificación válido");
+        }
+    }
+
+    @PostMapping("/resend-code")
+    public ResponseEntity<?> resendCode(
+            @RequestBody ResendCodeRequest request) {
+
+        if (request.getEmail() == null ||
+                request.getEmail().trim().isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body("El correo es obligatorio");
+        }
+
+        String email =
+                request.getEmail().trim().toLowerCase();
+
+        User user = userRepository
+                .findByEmailIgnoreCase(email)
+                .orElse(null);
+
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body("No existe una cuenta con este correo");
+        }
+
+        if (user.isEmailVerified()) {
+            return ResponseEntity.badRequest()
+                    .body("El correo ya se encuentra verificado");
+        }
+
+        try {
+            emailVerificationService
+                    .sendVerificationCode(user);
+
+            return ResponseEntity.ok(
+                    Map.of(
+                            "sent", true,
+                            "message", "Código enviado correctamente"
+                    )
+            );
+
+        } catch (Exception exception) {
+            return ResponseEntity.internalServerError()
+                    .body("No fue posible enviar el código de verificación");
+        }
     }
 
     @PostMapping("/login")
@@ -158,6 +307,12 @@ public class AuthController {
         if (!user.isActivo()) {
             return ResponseEntity.status(403)
                     .body("El usuario se encuentra inactivo");
+        }
+
+        if (user.getRole() == User.Role.PASSENGER
+                && !user.isEmailVerified()) {
+            return ResponseEntity.status(403)
+                    .body("Debes verificar tu correo antes de iniciar sesión");
         }
 
         if (user.getRole() == User.Role.DRIVER) {
@@ -190,6 +345,7 @@ public class AuthController {
 
         private String nombre;
         private String email;
+        private String telefono;
         private String password;
         private String role;
         private String licencia;
@@ -208,6 +364,14 @@ public class AuthController {
 
         public void setEmail(String email) {
             this.email = email;
+        }
+
+        public String getTelefono() {
+            return telefono;
+        }
+
+        public void setTelefono(String telefono) {
+            this.telefono = telefono;
         }
 
         public String getPassword() {
@@ -232,6 +396,41 @@ public class AuthController {
 
         public void setLicencia(String licencia) {
             this.licencia = licencia;
+        }
+    }
+
+    public static class VerifyEmailRequest {
+
+        private String email;
+        private String code;
+
+        public String getEmail() {
+            return email;
+        }
+
+        public void setEmail(String email) {
+            this.email = email;
+        }
+
+        public String getCode() {
+            return code;
+        }
+
+        public void setCode(String code) {
+            this.code = code;
+        }
+    }
+
+    public static class ResendCodeRequest {
+
+        private String email;
+
+        public String getEmail() {
+            return email;
+        }
+
+        public void setEmail(String email) {
+            this.email = email;
         }
     }
 
