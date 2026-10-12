@@ -53,6 +53,13 @@ public class SecurityConfig {
                                                                 "/error")
                                                 .permitAll()
 
+                                                .requestMatchers(HttpMethod.GET, "/api/passenger-feedback").hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.POST, "/api/passenger-feedback").hasRole("PASSENGER")
+                                                .requestMatchers("/api/passenger/profile/**").hasRole("PASSENGER")
+
+                                                        .requestMatchers("/api/boarding/trip/*/code").hasAnyRole("ADMIN", "DRIVER")
+                                                        .requestMatchers("/api/boarding/**").hasRole("PASSENGER")
+
                                                 .requestMatchers("/api/users/**", "/api/admin/permanent-delete/**")
                                                 .hasRole("ADMIN")
 
@@ -119,10 +126,18 @@ public class SecurityConfig {
                                                                 "/api/passenger-reports/*/reject")
                                                 .hasRole("ADMIN")
 
-                                                .requestMatchers(
+                                        .requestMatchers(
+                                                                HttpMethod.GET,
+                                                                "/api/violations/driver/*")
+                                                .hasAnyRole("ADMIN", "DRIVER")
+
+                                                // Viajes activos: lectura necesaria para reportes de pasajeros.
+                                                .requestMatchers(HttpMethod.GET, "/api/trips/active")
+                                                .hasAnyRole("ADMIN", "PASSENGER")
+
+                                        .requestMatchers(
                                                                 HttpMethod.GET,
                                                                 "/api/audit-logs",
-                                                                "/api/trips/active",
                                                                 "/api/monitoring/**",
                                                                 "/api/violations/**",
                                                                 "/api/passenger-alerts",
@@ -131,6 +146,11 @@ public class SecurityConfig {
                                                                 "/api/passenger-reports",
                                                                 "/api/passenger-reports/*")
                                                 .hasRole("ADMIN")
+
+                                                .requestMatchers(HttpMethod.POST, "/api/driver-reports").hasRole("DRIVER")
+                                                .requestMatchers(HttpMethod.GET, "/api/driver-reports/mine").hasRole("DRIVER")
+                                                .requestMatchers(HttpMethod.GET, "/api/driver-reports").hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.PUT, "/api/driver-reports/*/status").hasRole("ADMIN")
 
                                                 .requestMatchers(
                                                                 HttpMethod.POST,

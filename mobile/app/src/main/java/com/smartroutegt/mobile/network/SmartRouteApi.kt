@@ -5,10 +5,16 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.http.Body
 import retrofit2.Response
 import okhttp3.ResponseBody
 
 interface SmartRouteApi {
+    @POST("api/driver-reports")
+    suspend fun createDriverReport(@Body request: DriverReportCreateDto): DriverReportDto
+    @GET("api/driver-reports/mine")
+    suspend fun getMyDriverReports(): List<DriverReportDto>
+
 
     @GET("api/drivers/license/{licencia}")
     suspend fun getDriverByLicense(
@@ -41,7 +47,12 @@ interface SmartRouteApi {
         @Query("latitud") latitud: Double,
         @Query("longitud") longitud: Double,
         @Query("velocidad") velocidad: Double
-    ): BusLocationDto
+    ): DriverSafetyResponseDto
+
+    @GET("api/violations/driver/{driverId}")
+    suspend fun getViolationsByDriver(
+        @Path("driverId") driverId: Long
+    ): List<ViolationDto>
 
     @GET("api/route-stops/route")
     suspend fun getRouteStops(

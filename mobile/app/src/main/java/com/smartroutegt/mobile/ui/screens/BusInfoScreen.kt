@@ -1,115 +1,169 @@
 package com.smartroutegt.mobile.ui.screens
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Card
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import com.smartroutegt.mobile.data.remote.ApiClient
 import com.smartroutegt.mobile.data.remote.BusMonitoringDto
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import kotlinx.coroutines.delay
+
+private val fleetBlue = Color(0xFF193E7B)
+private val fleetBackground = Color(0xFFF4F7FB)
 
 @Composable
-fun BusInfoScreen(
-    onBack: () -> Unit
-) {
-    var buses by remember {
-        mutableStateOf<List<BusMonitoringDto>>(emptyList())
-    }
-
-    var isLoading by remember {
-        mutableStateOf(true)
-    }
-
-    var loadError by remember {
-        mutableStateOf<String?>(null)
-    }
+fun BusInfoScreen(onBack: () -> Unit) {
+    var buses by remember { mutableStateOf<List<BusMonitoringDto>>(emptyList()) }
+    var loading by remember { mutableStateOf(true) }
+    var error by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
-        try {
-            buses = ApiClient.busMonitoringApiService.getBuses()
-            loadError = null
-        } catch (e: Exception) {
-            buses = emptyList()
-            loadError = "No se pudo cargar la información de los buses"
-        } finally {
-            isLoading = false
+        while (true) {
+            try {
+                buses = ApiClient.busMonitoringApiService.getBuses()
+                error = null
+            } catch (e: Exception) {
+                error = "No se pudo actualizar la flota: ${e.message}"
+            } finally {
+                loading = false
+            }
+            delay(10_000)
         }
     }
 
     Column(
-        modifier = Modifier
+        Modifier
             .fillMaxSize()
+            .background(fleetBackground)
             .verticalScroll(rememberScrollState())
-            .padding(24.dp)
     ) {
-
-        OutlinedButton(
-            onClick = onBack
-        ) {
-            Text(text = "← Volver al menú")
-        }
-
-        Text(
-            text = "Información del bus",
-            modifier = Modifier.padding(top = 16.dp)
+        PassengerV3TopBar(
+            "Buses en tiempo real",
+            "Estado de la flota",
+            onBack
         )
 
-        when {
-            isLoading -> {
+        Column(
+            Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = fleetBlue),
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Column(
+                    Modifier.fillMaxWidth().padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        "Flota SmartRoute GT",
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "${buses.size} buses registrados en el monitoreo",
+                        color = Color.White.copy(alpha = 0.9f)
+                    )
+                    Text(
+                        "Actualización automática cada 10 segundos",
+                        color = Color.White.copy(alpha = 0.75f),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+
+            if (loading) {
+                LinearProgressIndicator(Modifier.fillMaxWidth())
+            }
+
+            if (error != null) {
                 Text(
-                    text = "Cargando información de buses...",
-                    modifier = Modifier.padding(top = 24.dp)
+                    error.orEmpty(),
+                    color = MaterialTheme.colorScheme.error
                 )
             }
 
-            loadError != null -> {
-                Text(
-                    text = loadError ?: "",
-                    modifier = Modifier.padding(top = 24.dp)
-                )
+            if (!loading && buses.isEmpty()) {
+                Text("No hay buses disponibles.")
             }
 
-            buses.isEmpty() -> {
-                Text(
-                    text = "No hay buses disponibles",
-                    modifier = Modifier.padding(top = 24.dp)
-                )
-            }
-
-            else -> {
-                buses.forEach { bus ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 16.dp)
+            buses.forEach { bus ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        Modifier.padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp)
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(text = "Bus: ${bus.codigo}")
-                            Text(text = "Placa: ${bus.placa}")
-                            Text(text = "Ruta: ${bus.ruta ?: "Sin ruta asignada"}")
-                            Text(text = "Piloto: ${bus.piloto ?: "Sin piloto asignado"}")
-                            Text(text = "Estado: ${if (bus.activo) "Activo" else "Inactivo"}")
                             Text(
-                                text = "Velocidad: ${
-                                    bus.velocidad?.let { "%.1f km/h".format(it) }
-                                        ?: "Sin información"
-                                }"
+                                bus.codigo,
+                                color = fleetBlue,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
                             )
+                            Surface(
+                                color = if (bus.activo)
+                                    Color(0xFFE0F5E9)
+                                else Color(0xFFFDE8E8),
+                                shape = RoundedCornerShape(50.dp)
+                            ) {
+                                Text(
+                                    if (bus.activo) "Activo" else "Inactivo",
+                                    color = if (bus.activo)
+                                        Color(0xFF167447)
+                                    else Color(0xFFB42318),
+                                    modifier = Modifier.padding(
+                                        horizontal = 12.dp,
+                                        vertical = 6.dp
+                                    ),
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            }
                         }
+
+                        Text(
+                            bus.ruta ?: "Sin ruta asignada",
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            "Placa: ${bus.placa}",
+                            color = Color.DarkGray
+                        )
+                        Text(
+                            "Piloto: ${bus.piloto ?: "Sin piloto asignado"}",
+                            color = Color.DarkGray
+                        )
+
+                        HorizontalDivider(color = Color(0xFFE8EDF5))
+
+                        Text(
+                            "Velocidad reportada",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.Gray
+                        )
+                        Text(
+                            bus.velocidad?.let {
+                                "%.1f km/h".format(it)
+                            } ?: "Sin información",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = fleetBlue
+                        )
                     }
                 }
             }

@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded",()=>{document.querySelectorAll("[da
 async function login(e){e.preventDefault();try{let r=await fetch(API+"/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:$("email").value.trim(),password:$("password").value})}),b=await parse(r);if(!r.ok)throw Error(msg(b,"No fue posible iniciar sesión"));if(b.role!=="ADMIN")throw Error("Esta plataforma es exclusiva para administradores.");session={token:b.token,tokenType:b.tokenType||"Bearer",id:b.id,nombre:b.nombre,email:b.email,role:b.role};sessionStorage.setItem(KEY,JSON.stringify(session));showApp()}catch(e){$("loginMsg").innerHTML=`<div class="alert alert-danger">${esc(e.message)}</div>`}}
 function restore(){try{session=JSON.parse(sessionStorage.getItem(KEY));session?.token&&session.role==="ADMIN"?showApp():showLogin()}catch{showLogin()}}function showLogin(){$("login").classList.remove("d-none");$("app").classList.add("d-none")}function showApp(){$("login").classList.add("d-none");$("app").classList.remove("d-none");$("adminName").textContent=session.nombre||"Administrador";$("adminEmail").textContent=session.email||"";go(location.hash.replace("#/","")||"dashboard");setTimeout(smartStartNotifications,800)}function logout(){smartStopNotifications();sessionStorage.removeItem(KEY);session=null;if(mapTimer)clearInterval(mapTimer);showLogin()}
 async function req(path,opt={}){let h=new Headers(opt.headers||{});h.set("Accept","application/json");h.set("Authorization",(session.tokenType||"Bearer")+" "+session.token);if(opt.body)h.set("Content-Type","application/json");let r;try{r=await fetch(API+path,{...opt,headers:h})}catch{throw Error("No se pudo conectar con el backend.")}if(r.status===401){logout();throw Error("La sesión expiró.")}if(r.status===403)throw Error("No tienes permisos para esta operación.");return r}async function json(path,opt={}){let r=await req(path,opt),b=await parse(r);if(!r.ok)throw Error(msg(b,"Error HTTP "+r.status));return b}async function parse(r){let t=await r.text();if(!t)return null;try{return JSON.parse(t)}catch{return t}}function msg(b,f){return typeof b==="string"?b:b?.message||b?.error||f}
-function go(v){if(!titles[v])v="dashboard";document.querySelectorAll(".view").forEach(x=>x.classList.toggle("active",x.id===v));document.querySelectorAll("[data-view]").forEach(x=>x.classList.toggle("active",x.dataset.view===v));$("title").textContent=titles[v];history.replaceState(null,"","#/"+v);document.querySelector("aside").classList.remove("open");({dashboard,mapa:mapView,rutas:loadRoutes,paradas:()=>simple("/stops","stopsTable",5,x=>`<tr><td><b>${esc(x.nombre)}</b></td><td>${x.latitud}</td><td>${x.longitud}</td><td>${x.radioPermitido} m</td><td>${pill(x.activa?"Activa":"Inactiva",x.activa?"success":"neutral")}</td></tr>`),buses:()=>simple("/buses","busesTable",5,x=>`<tr><td>${x.id}</td><td><b>${esc(x.codigo)}</b></td><td>${esc(x.placa)}</td><td>${x.capacidad??"—"}</td><td>${pill(x.activa?"Activo":"Inactivo",x.activa?"success":"neutral")}</td></tr>`),pilotos:()=>simple("/drivers","driversTable",6,x=>`<tr><td>${x.id}</td><td><b>${esc(x.nombre)}</b></td><td>${esc(x.licencia)}</td><td>${esc(x.telefono||"—")}</td><td>${x.sancionesConfirmadas??x.sanciones??0}</td><td>${pill(x.activo?"Activo":"Suspendido",x.activo?"success":"danger")}</td></tr>`),sanciones:()=>simple("/violations","violationsTable",7,x=>`<tr><td>${x.id}</td><td>${esc(x.driver?.nombre||"—")}</td><td>${esc(x.bus?.codigo||"—")}</td><td>${esc(x.tipo||"—")}</td><td>${esc(x.descripcion||"—")}</td><td>${date(x.fechaHora)}</td><td>${state(x.estado)}</td></tr>`),alertas:()=>simple("/passenger-alerts","alertsTable",5,x=>`<tr><td>${x.id}</td><td><b>${esc(x.tipo||"—")}</b></td><td>${esc(x.descripcion||"—")}</td><td>${date(x.fechaHora)}</td><td>${state(x.estado)}</td></tr>`),reportes:loadReports,auditoria:()=>simple("/audit-logs","auditTable",6,x=>`<tr><td>${date(x.fechaHora)}</td><td><b>${esc(x.actor||"SISTEMA")}</b></td><td>${esc(x.accion||"—")}</td><td>${esc(x.entidad||"—")}</td><td>${x.entidadId??"—"}</td><td>${esc(x.descripcion||"—")}</td></tr>`),usuarios:()=>simple("/users","usersTable",4,x=>`<tr><td><b>${esc(x.nombre)}</b></td><td>${esc(x.email)}</td><td>${esc(x.role)}</td><td>${pill(x.activo?"Activo":"Inactivo",x.activo?"success":"neutral")}</td></tr>`)}[v])?.();document.dispatchEvent(new CustomEvent("smartroute:view",{detail:v}));if(v==="mapa"&&map)setTimeout(()=>map.invalidateSize(),100)}
+function go(v){if(!titles[v])v="dashboard";document.querySelectorAll(".view").forEach(x=>x.classList.toggle("active",x.id===v));document.querySelectorAll("[data-view]").forEach(x=>x.classList.toggle("active",x.dataset.view===v));$("title").textContent=titles[v];history.replaceState(null,"","#/"+v);document.querySelector("aside").classList.remove("open");({dashboard,mapa:mapView,rutas:loadRoutes,paradas:()=>simple("/stops","stopsTable",5,x=>`<tr><td><b>${esc(x.nombre)}</b></td><td>${x.latitud}</td><td>${x.longitud}</td><td>${x.radioPermitido} m</td><td>${pill(x.activa?"Activa":"Inactiva",x.activa?"success":"neutral")}</td></tr>`),buses:()=>simple("/buses","busesTable",5,x=>`<tr><td>${x.id}</td><td><b>${esc(x.codigo)}</b></td><td>${esc(x.placa)}</td><td>${x.capacidad??"—"}</td><td>${pill(x.activa?"Activo":"Inactivo",x.activa?"success":"neutral")}</td></tr>`),pilotos:()=>simple("/drivers","driversTable",6,x=>`<tr><td>${x.id}</td><td><b>${esc(x.nombre)}</b></td><td>${esc(x.licencia)}</td><td>${esc(x.telefono||"—")}</td><td>${x.sancionesConfirmadas??x.sanciones??0}</td><td>${pill(x.activo?"Activo":"Suspendido",x.activo?"success":"danger")}</td></tr>`),sanciones:()=>simple("/violations","violationsTable",7,x=>`<tr><td>${x.id}</td><td>${esc(x.driver?.nombre||"—")}</td><td>${esc(x.bus?.codigo||"—")}</td><td>${esc(smartTipoSancionES(x.tipo))}</td><td>${esc(x.descripcion||"—")}</td><td>${date(x.fechaHora)}</td><td>${state(x.estado)}</td></tr>`),alertas:()=>simple("/passenger-alerts","alertsTable",5,x=>`<tr><td>${x.id}</td><td><b>${esc(x.tipo||"—")}</b></td><td>${esc(x.descripcion||"—")}</td><td>${date(x.fechaHora)}</td><td>${state(x.estado)}</td></tr>`),reportes:()=>{loadReports();smartLoadDriverReports();smartLoadFeedback()},auditoria:()=>simple("/audit-logs","auditTable",6,x=>`<tr><td>${date(x.fechaHora)}</td><td><b>${esc(x.actor||"SISTEMA")}</b></td><td>${esc(x.accion||"—")}</td><td>${esc(x.entidad||"—")}</td><td>${x.entidadId??"—"}</td><td>${esc(x.descripcion||"—")}</td></tr>`),usuarios:()=>simple("/users","usersTable",4,x=>`<tr><td><b>${esc(x.nombre)}</b></td><td>${esc(x.email)}</td><td>${esc(x.role)}</td><td>${pill(x.activo?"Activo":"Inactivo",x.activo?"success":"neutral")}</td></tr>`)}[v])?.();document.dispatchEvent(new CustomEvent("smartroute:view",{detail:v}));if(v==="mapa"&&map)setTimeout(()=>map.invalidateSize(),100)}
 async function dashboard(){try{let[b,d,t,v,a]=await Promise.all([json("/buses"),json("/drivers"),json("/trips/active"),json("/violations"),json("/passenger-alerts")]);$("mBuses").textContent=b.filter(x=>x.activa).length;$("mDrivers").textContent=d.filter(x=>x.activo).length;$("mTrips").textContent=t.length;$("mViolations").textContent=v.filter(x=>x.estado==="PENDING").length;$("mAlerts").textContent=a.filter(x=>x.estado==="PENDING").length;$("dashTable").innerHTML=(await Promise.all(b.slice(0,6).map(async x=>{let l=await latest(x.id);return `<tr><td><b>${esc(x.codigo)}</b></td><td>${esc(x.placa)}</td><td>${pill(x.activa?"Activo":"Inactivo",x.activa?"success":"neutral")}</td><td>${l?speed(l.velocidad):"Sin GPS"}</td><td>${date(l?.fechaHora)}</td></tr>`}))).join("")||empty(5,"No hay buses.")}catch(e){error(e)}}
 async function latest(id){try{let r=await req(`/locations/bus/${id}/latest`);return r.ok?await parse(r):null}catch{return null}}function initMap(){
  if(map)return;
@@ -520,7 +520,7 @@ window.smartFocusBus = id => {
 };
 
 async function loadRoutes(){try{routes=await json("/routes");$("routesTable").innerHTML=routes.map(x=>`<tr><td>${x.id}</td><td><b>${esc(x.codigo)}</b></td><td>${esc(x.nombre)}</td><td>${pill(x.activa?"Activa":"Inactiva",x.activa?"success":"neutral")}</td><td><button class="table-btn edit" onclick="editRoute(${x.id})">Editar</button><button class="table-btn ${x.activa?"off":"on"}" onclick="toggleRoute(${x.id},${!x.activa})">${x.activa?"Desactivar":"Activar"}</button></td></tr>`).join("")||empty(5,"No hay rutas.")}catch(e){$("routesTable").innerHTML=empty(5,e.message)}}function openRoute(x){routeId=x?.id||null;$("routeTitle").textContent=x?"Editar ruta":"Nueva ruta";$("routeCode").value=x?.codigo||"";$("routeName").value=x?.nombre||"";$("routeActive").checked=x?!!x.activa:true;bootstrap.Modal.getOrCreateInstance($("routeModal")).show()}window.editRoute=id=>openRoute(routes.find(x=>x.id===id));async function saveRoute(e){e.preventDefault();try{await json(routeId?`/routes/${routeId}`:"/routes",{method:routeId?"PUT":"POST",body:JSON.stringify({codigo:$("routeCode").value.trim(),nombre:$("routeName").value.trim(),activa:$("routeActive").checked})});bootstrap.Modal.getInstance($("routeModal"))?.hide();loadRoutes()}catch(e){error(e)}}window.toggleRoute=async(id,on)=>{try{let r=await req(on?`/routes/${id}/activar`:`/routes/${id}`,{method:on?"PUT":"DELETE"});if(!r.ok)throw Error(msg(await parse(r),"No se pudo cambiar la ruta."));loadRoutes()}catch(e){error(e)}};
-async function loadReports(){try{let d=await json("/passenger-reports");$("reportsTable").innerHTML=d.map(x=>`<tr><td>${x.id}</td><td><b>${esc(x.tipo||"—")}</b></td><td>${esc(x.descripcion||"—")}</td><td>${date(x.fechaHora)}</td><td>${state(x.estado)}</td><td>${x.estado==="PENDING"?`<button class="table-btn edit" onclick="reportAction(${x.id},'review')">Revisar</button>`:x.estado==="UNDER_REVIEW"?`<button class="table-btn on" onclick="reportAction(${x.id},'resolve')">Resolver</button><button class="table-btn off" onclick="reportAction(${x.id},'reject')">Rechazar</button>`:"—"}</td></tr>`).join("")||empty(6,"No hay reportes.")}catch(e){$("reportsTable").innerHTML=empty(6,e.message)}}window.reportAction=async(id,a)=>{let o={method:"PUT"};if(a!=="review"){let t=prompt(a==="resolve"?"Resolución:":"Motivo del rechazo:");if(!t?.trim())return;o.body=JSON.stringify({resolucion:t.trim()})}try{await json(`/passenger-reports/${id}/${a}`,o);loadReports()}catch(e){error(e)}};
+async function loadReports(){try{let d=await json("/passenger-reports");$("reportsTable").innerHTML=d.map(x=>`<tr><td>${x.id}</td><td><b>${esc(smartReportLabel(x.tipo))}</b></td><td>${esc(x.descripcion||"—")}</td><td>${date(x.fechaHora)}</td><td>${state(x.estado)}</td><td>${x.estado==="PENDING"?`<button class="table-btn edit" onclick="reportAction(${x.id},'review')">Revisar</button>`:x.estado==="UNDER_REVIEW"?`<button class="table-btn on" onclick="reportAction(${x.id},'resolve')">Resolver</button><button class="table-btn off" onclick="reportAction(${x.id},'reject')">Rechazar</button>`:"—"}</td></tr>`).join("")||empty(6,"No hay reportes.")}catch(e){$("reportsTable").innerHTML=empty(6,e.message)}}window.reportAction=async(id,a)=>{let o={method:"PUT"};if(a!=="review"){let t=prompt(a==="resolve"?"Resolución:":"Motivo del rechazo:");if(!t?.trim())return;o.body=JSON.stringify({resolucion:t.trim()})}try{await json(`/passenger-reports/${id}/${a}`,o);loadReports()}catch(e){error(e)}};
 async function simple(path,id,n,render){try{let d=await json(path);$(id).innerHTML=d.map(render).join("")||empty(n,"No hay registros.")}catch(e){$(id).innerHTML=empty(n,e.message)}}function pill(t,c){return `<span class="pill ${c}">${esc(t)}</span>`}function state(s){let x=({PENDING:["Pendiente","warning"],UNDER_REVIEW:["En revisión","info"],REVIEWED:["Revisada","info"],CONFIRMED:["Confirmada","danger"],RESOLVED:["Resuelta","success"],REJECTED:["Rechazada","neutral"],CANCELLED:["Cancelada","neutral"]}[s]||[s||"—","neutral"]);return pill(...x)}function speed(v){v=Number(v);return Number.isFinite(v)?v.toFixed(1)+" km/h":"—"}function date(v){if(!v)return"—";let d=new Date(v);return isNaN(d)?"—":d.toLocaleString("es-GT")}function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}function empty(n,t){return `<tr><td colspan="${n}" class="empty">${esc(t)}</td></tr>`}function error(e){$("message").innerHTML=`<div class="alert alert-danger">${esc(e.message||e)}</div>`}
 /* =========================================================
    SMARTROUTE GT - NOTIFICACIONES EN TIEMPO REAL
@@ -532,6 +532,8 @@ let smartNotificationTimer = null;
 let smartNotificationReady = false;
 let knownViolationIds = new Set();
 let knownAlertIds = new Set();
+let knownDriverReportIds = new Set();
+let smartDriverReportReady = false;
 let smartAudioContext = null;
 
 function smartInitAudio() {
@@ -713,15 +715,21 @@ async function smartCheckNotifications() {
     if (!session?.token) return;
 
     try {
-        const [violations, alerts] = await Promise.all([
+        const [violations, alerts, driverReports] = await Promise.all([
             json("/violations"),
-            json("/passenger-alerts")
+            json("/passenger-alerts"),
+            json("/driver-reports").catch(() => null)
         ]);
 
         if (!smartNotificationReady) {
             violations.forEach(x => knownViolationIds.add(String(x.id)));
             alerts.forEach(x => knownAlertIds.add(String(x.id)));
             smartNotificationReady = true;
+            if(Array.isArray(driverReports)){
+                driverReports.forEach(x=>knownDriverReportIds.add(String(x.id)));
+                smartDriverReportReady=true;
+            }
+            smartUpdateIncidentBadge(driverReports);
             return;
         }
 
@@ -736,6 +744,24 @@ async function smartCheckNotifications() {
         violations.forEach(x => knownViolationIds.add(String(x.id)));
         alerts.forEach(x => knownAlertIds.add(String(x.id)));
 
+        if(Array.isArray(driverReports)){
+            if(!smartDriverReportReady){
+                driverReports.forEach(x=>knownDriverReportIds.add(String(x.id)));
+                smartDriverReportReady=true;
+            }else{
+                const newReports=driverReports.filter(x=>!knownDriverReportIds.has(String(x.id)));
+                driverReports.forEach(x=>knownDriverReportIds.add(String(x.id)));
+                newReports.forEach(r=>{
+                    if(r.severity==="HIGH")smartSanctionSound();
+                    smartNotify({title:r.severity==="HIGH"?"Incidente grave de piloto":"Nuevo reporte de piloto",
+                        message:`#${r.id} · ${r.driver?.nombre||"Piloto"} · ${r.description||r.type||"Incidente"}`,
+                        type:r.severity==="HIGH"?"sanction":"info",icon:"bi-clipboard2-pulse",
+                        duration:r.severity==="HIGH"?12000:8000,actionView:"reportes"});
+                });
+                if(newReports.length&&location.hash==="#/reportes")smartLoadDriverReports();
+            }
+            smartUpdateIncidentBadge(driverReports);
+        }
         for (const violation of newViolations) {
             smartSanctionSound();
 
@@ -803,6 +829,8 @@ function smartStartNotifications() {
     smartNotificationReady = false;
     knownViolationIds.clear();
     knownAlertIds.clear();
+    knownDriverReportIds.clear();
+    smartDriverReportReady=false;
 
     smartCheckNotifications();
 
@@ -821,6 +849,8 @@ function smartStopNotifications() {
     smartNotificationReady = false;
     knownViolationIds.clear();
     knownAlertIds.clear();
+    knownDriverReportIds.clear();
+    smartDriverReportReady=false;
 
     document.getElementById("smartSosBanner")?.remove();
     document.getElementById("smartNotifications")?.replaceChildren();
@@ -838,3 +868,102 @@ function smartUnlockAudio() {
 
 document.addEventListener("click", smartUnlockAudio);
 document.addEventListener("keydown", smartUnlockAudio);
+
+/* SMARTROUTE_GT_TRADUCCIONES_REPORTES_V2 */
+function smartReportLabel(value) {
+ const labels={
+  INCIDENT:"Incidente", ACCIDENT:"Accidente", MECHANICAL:"Falla mecánica",
+  HIGH:"Alta", MEDIUM:"Media", LOW:"Baja",
+  RECKLESS_DRIVING:"Conducción imprudente", MISSED_STOP:"Parada omitida",
+  BAD_BEHAVIOR:"Mala conducta", OTHER:"Otro",
+  PENDING:"Pendiente", UNDER_REVIEW:"En revisión", RESOLVED:"Resuelto",
+  REJECTED:"Rechazado", REVIEWED:"Revisado", CONFIRMED:"Confirmado",
+  CANCELLED:"Cancelado"
+ };
+ return labels[String(value??"").toUpperCase()] || String(value??"—");
+}
+
+async function smartLoadDriverReports(){
+ const tbody=document.getElementById("driverReportsTable");if(!tbody||!session?.token)return;
+ try{
+  const items=await json("/driver-reports");
+  tbody.innerHTML=items.map(r=>{
+   const sev=r.severity==="HIGH"?"danger":r.severity==="MEDIUM"?"warning":"neutral";
+   const lat=Number(r.latitude),lon=Number(r.longitude);const coords=r.latitude!=null&&r.longitude!=null&&Number.isFinite(lat)&&Number.isFinite(lon)&&Math.abs(lat)<=90&&Math.abs(lon)<=180?`<button class="table-btn edit" onclick="smartFocusDriverReport(${lat},${lon},${Number(r.id)})">Ver mapa</button>`:"—";
+   const next=r.status==="PENDING"?`<button class="table-btn edit" onclick="smartSetDriverReport(${Number(r.id)},'UNDER_REVIEW')">Revisar</button>`:r.status==="UNDER_REVIEW"?`<button class="table-btn on" onclick="smartSetDriverReport(${Number(r.id)},'RESOLVED')">Resolver</button>`:"—";
+   return `<tr><td>${Number(r.id)}</td><td>${esc(r.driver?.nombre||"—")}</td><td>${esc(smartReportLabel(r.type))}</td><td><span class="pill ${sev}">${esc(smartReportLabel(r.severity))}</span></td><td>${esc(r.description)}${r.resolution?`<div class="text-success small mt-1"><b>Resolución:</b> ${esc(r.resolution)}</div>`:""}</td><td>${coords}</td><td>${date(r.createdAt)}</td><td>${state(r.status)}</td><td>${next}</td></tr>`;
+  }).join("")||empty(9,"No hay reportes de pilotos.");
+ }catch(e){tbody.innerHTML=empty(9,e.message)}
+}
+window.smartSetDriverReport=function(id,status){
+ if(status==="RESOLVED"){
+  document.getElementById("smartDriverResolveId").value=String(id);
+  document.getElementById("smartDriverResolveText").value="";
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("smartDriverResolveModal")).show();
+  return;
+ }
+ smartSaveDriverStatus(id,status,null);
+};
+async function smartSaveDriverStatus(id,status,resolution){
+ try{
+  await json(`/driver-reports/${id}/status`,{method:"PUT",body:JSON.stringify({status,resolution})});
+  await smartLoadDriverReports();
+ }catch(e){error(e);throw e}
+}
+window.smartConfirmDriverResolution=async function(e){
+ e.preventDefault();const id=Number(document.getElementById("smartDriverResolveId").value);
+ const resolution=document.getElementById("smartDriverResolveText").value.trim();
+ if(!resolution){document.getElementById("smartDriverResolveText").focus();return}
+ const button=document.getElementById("smartDriverResolveSubmit");button.disabled=true;
+ try{await smartSaveDriverStatus(id,"RESOLVED",resolution);bootstrap.Modal.getInstance(document.getElementById("smartDriverResolveModal"))?.hide()}
+ catch(_){}finally{button.disabled=false}
+};
+let smartIncidentMarker=null;
+window.smartFocusDriverReport=async function(lat,lon,id){
+ if(!Number.isFinite(lat)||!Number.isFinite(lon))return;
+ go("mapa");
+ initMap();
+ await new Promise(resolve=>setTimeout(resolve,200));
+ if(smartIncidentMarker)map.removeLayer(smartIncidentMarker);
+ smartIncidentMarker=L.marker([lat,lon],{zIndexOffset:1500}).addTo(map);
+ smartIncidentMarker.bindPopup(`<b>Incidente de piloto #${Number(id)}</b><br>Ubicación reportada`).openPopup();
+ map.invalidateSize();map.flyTo([lat,lon],16);
+};
+
+setInterval(()=>{if(session?.token&&location.hash==="#/reportes")smartLoadDriverReports()},15000);
+
+function smartUpdateIncidentBadge(items){
+ const badge=document.getElementById("smartDriverIncidentBadge");if(!badge)return;
+ if(!Array.isArray(items)){badge.hidden=true;return}
+ const pending=items.filter(x=>x.status==="PENDING").length;
+ badge.textContent=String(pending);badge.hidden=pending===0;
+ badge.title=`${pending} incidentes de piloto pendientes`;
+}
+
+
+function smartTipoSancionES(tipo) {
+    const nombres = {
+        SPEEDING: "Exceso de velocidad",
+        RECKLESS_DRIVING: "Conducción imprudente",
+        MISSED_STOP: "Parada omitida",
+        BAD_BEHAVIOR: "Mala conducta",
+        OTHER: "Otro"
+    };
+    return nombres[tipo] || String(tipo || "—").replaceAll("_", " ");
+}
+
+// SmartRoute GT - evaluaciones y felicitaciones de pasajeros
+let smartFeedbackFilter="ALL";
+async function smartLoadFeedback(){
+ const tbody=document.getElementById("smartFeedbackTable"), summary=document.getElementById("smartFeedbackSummary");
+ if(!tbody)return;
+ try{
+  const data=await json("/passenger-feedback");
+  const ratings=data.filter(x=>x.kind==="RATING"&&Number.isFinite(x.stars));
+  const compliments=data.filter(x=>x.kind==="COMPLIMENT");
+  const avg=ratings.length?(ratings.reduce((n,x)=>n+x.stars,0)/ratings.length).toFixed(1):"—";
+  summary.textContent=`${ratings.length} calificaciones · ${compliments.length} felicitaciones · Promedio: ${avg} / 5`;
+  const filtered=data.filter(x=>smartFeedbackFilter==="ALL"||x.kind===smartFeedbackFilter).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+  tbody.innerHTML=filtered.map(x=>`<tr><td>${date(x.createdAt)}</td><td>${x.kind==="COMPLIMENT"?'<span class="badge bg-success">Felicitación</span>':'<span class="badge bg-warning text-dark">Calificación</span>'}</td><td>${esc(x.driver||"—")}</td><td>${esc(x.bus||"—")}</td><td>${esc(x.tripId)}</td><td>${esc(x.passenger||"—")}</td><td>${x.kind==="RATING"?esc(String(x.stars)+" / 5 estrellas"):esc(x.reason||"—")}${x.comment?" · "+esc(x.comment):""}</td></tr>`).join("")||'<tr><td colspan="7">Sin registros de esta categoría.</td></tr>';
+ }catch(e){tbody.innerHTML=`<tr><td colspan="7">${esc(e.message||"Error al cargar")}</td></tr>`;}
+}

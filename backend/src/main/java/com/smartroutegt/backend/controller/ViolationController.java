@@ -24,6 +24,7 @@ import com.smartroutegt.backend.repository.BusRepository;
 import com.smartroutegt.backend.repository.DriverRepository;
 import com.smartroutegt.backend.repository.TripRepository;
 import com.smartroutegt.backend.repository.ViolationRepository;
+import com.smartroutegt.backend.service.ResourceAuthorizationService;
 
 @RestController
 @RequestMapping("/api/violations")
@@ -34,19 +35,22 @@ public class ViolationController {
     private final BusRepository busRepository;
     private final TripRepository tripRepository;
     private final AuditLogRepository auditLogRepository;
+    private final ResourceAuthorizationService authorization;
 
     public ViolationController(
             ViolationRepository violationRepository,
             DriverRepository driverRepository,
             BusRepository busRepository,
             TripRepository tripRepository,
-            AuditLogRepository auditLogRepository) {
+            AuditLogRepository auditLogRepository,
+            ResourceAuthorizationService authorization) {
 
         this.violationRepository = violationRepository;
         this.driverRepository = driverRepository;
         this.busRepository = busRepository;
         this.tripRepository = tripRepository;
         this.auditLogRepository = auditLogRepository;
+        this.authorization = authorization;
     }
 
     @PostMapping
@@ -114,6 +118,26 @@ public class ViolationController {
     @GetMapping
     public List<Violation> obtenerInfracciones() {
         return violationRepository.findAll();
+    }
+
+    @GetMapping("/driver/{driverId}")
+    public ResponseEntity<?> obtenerInfraccionesPorPiloto(
+            @PathVariable Long driverId) {
+        if (!authorization.canAccessDriver(driverId)) {
+            return ResponseEntity.status(403).build();
+        }
+
+        Driver driver = driverRepository
+                .findById(driverId)
+                .orElse(null);
+
+        if (driver == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(
+                violationRepository
+                        .findByDriverIdOrderByFechaHoraDesc(driverId));
     }
 
     @GetMapping("/{id}")

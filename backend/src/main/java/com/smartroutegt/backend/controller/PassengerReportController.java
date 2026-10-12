@@ -25,8 +25,7 @@ import com.smartroutegt.backend.repository.TripRepository;
 @RequestMapping("/api/passenger-reports")
 public class PassengerReportController {
 
-    private static final int MINUTOS_DESPUES_DEL_VIAJE = 5;
-
+    private final com.smartroutegt.backend.service.PassengerBoardingService boardingService;
     private final PassengerReportRepository passengerReportRepository;
     private final TripRepository tripRepository;
     private final AuditLogRepository auditLogRepository;
@@ -34,7 +33,9 @@ public class PassengerReportController {
     public PassengerReportController(
             PassengerReportRepository passengerReportRepository,
             TripRepository tripRepository,
-            AuditLogRepository auditLogRepository) {
+            AuditLogRepository auditLogRepository,
+            com.smartroutegt.backend.service.PassengerBoardingService boardingService) {
+        this.boardingService = boardingService;
 
         this.passengerReportRepository = passengerReportRepository;
         this.tripRepository = tripRepository;
@@ -83,6 +84,8 @@ public class PassengerReportController {
                     .body("La longitud no es válida");
         }
 
+        boardingService.validateReport(request.getTripId(), request.getLatitud(), request.getLongitud());
+
         Trip trip = tripRepository
                 .findById(request.getTripId())
                 .orElse(null);
@@ -94,21 +97,6 @@ public class PassengerReportController {
 
         LocalDateTime ahora = LocalDateTime.now();
 
-        if (!trip.isActivo()) {
-
-            if (trip.getFechaFin() == null) {
-                return ResponseEntity.badRequest()
-                        .body("El viaje finalizado no tiene una fecha de finalización válida");
-            }
-
-            LocalDateTime limiteReporte = trip.getFechaFin()
-                    .plusMinutes(MINUTOS_DESPUES_DEL_VIAJE);
-
-            if (ahora.isAfter(limiteReporte)) {
-                return ResponseEntity.badRequest()
-                        .body("El tiempo permitido para reportar este viaje ha finalizado");
-            }
-        }
 
         PassengerReport report = new PassengerReport();
 

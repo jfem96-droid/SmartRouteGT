@@ -4,6 +4,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
@@ -138,10 +139,28 @@ public class GlobalExceptionHandler {
                 request);
     }
 
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiError> handleResponseStatus(
+            ResponseStatusException exception,
+            HttpServletRequest request) {
+
+        HttpStatus status = HttpStatus.resolve(exception.getStatusCode().value());
+        if (status == null) {
+            status = HttpStatus.BAD_REQUEST;
+        }
+        String message = exception.getReason();
+        if (message == null || message.isBlank()) {
+            message = "La solicitud no pudo procesarse";
+        }
+        return buildResponse(status, "BOARDING_REJECTED", message, request);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleUnexpectedException(
             Exception exception,
             HttpServletRequest request) {
+
+        exception.printStackTrace();
 
         return buildResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,

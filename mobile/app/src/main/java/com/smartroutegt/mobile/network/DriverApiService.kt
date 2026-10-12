@@ -78,13 +78,22 @@ class DriverApiService(
         latitud: Double,
         longitud: Double,
         velocidad: Double
-    ): BusLocationDto {
+    ): DriverSafetyResponseDto {
         return api.registerLocation(
             tripId = tripId,
             latitud = latitud,
             longitud = longitud,
             velocidad = velocidad
         )
+    }
+
+    suspend fun createDriverReport(request: DriverReportCreateDto): DriverReportDto = api.createDriverReport(request)
+    suspend fun getMyDriverReports(): List<DriverReportDto> = api.getMyDriverReports()
+
+    suspend fun getViolationsByDriver(
+        driverId: Long
+    ): List<ViolationDto> {
+        return api.getViolationsByDriver(driverId)
     }
 
     suspend fun getRouteStops(

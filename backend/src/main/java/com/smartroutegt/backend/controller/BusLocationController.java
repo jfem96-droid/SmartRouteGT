@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.smartroutegt.backend.dto.driver.DriverSafetyResponse;
 import com.smartroutegt.backend.entity.BusLocation;
 import com.smartroutegt.backend.entity.RouteStop;
 import com.smartroutegt.backend.entity.Trip;
@@ -29,7 +30,7 @@ import com.smartroutegt.backend.service.StopVisitService;
 @RequestMapping("/api/locations")
 public class BusLocationController {
 
-        private static final double LIMITE_VELOCIDAD = 60.0;
+        private static final double LIMITE_VELOCIDAD = 70.0;
         private static final long SEGUNDOS_EXCESO_PERMITIDOS = 10;
 
         private final BusLocationRepository locationRepository;
@@ -107,17 +108,26 @@ public class BusLocationController {
 
                 BusLocation locationGuardada = locationRepository.save(location);
 
-                detectarExcesoVelocidad(
-                                trip,
-                                locationGuardada);
-                procesarParadas(
+                DriverSafetyResponse.SpeedStatus speedStatus =
+                        detectarExcesoVelocidad(
                                 trip,
                                 locationGuardada);
 
-                return ResponseEntity.ok(locationGuardada);
+                DriverSafetyResponse.StopStatus stopStatus =
+                        procesarParadas(
+                                trip,
+                                locationGuardada);
+
+                DriverSafetyResponse response =
+                        new DriverSafetyResponse(
+                                locationGuardada,
+                                speedStatus,
+                                stopStatus);
+
+                return ResponseEntity.ok(response);
         }
 
-        private void procesarParadas(
+        private DriverSafetyResponse.StopStatus procesarParadas(
                         Trip trip,
                         BusLocation locationActual) {
 
@@ -136,94 +146,127 @@ public class BusLocationController {
                                 continue;
                         }
 
-                        stopVisitService.procesarUbicacion(
+                        return stopVisitService.procesarUbicacion(
                                         trip,
                                         routeStop,
                                         locationActual.getLatitud(),
                                         locationActual.getLongitud(),
                                         locationActual.getFechaHora());
-
-                        break;
                 }
+
+                return null;
         }
 
-        private void detectarExcesoVelocidad(
+        private DriverSafetyResponse.SpeedStatus detectarExcesoVelocidad(
                         Trip trip,
                         BusLocation locationActual) {
 
-                if (locationActual.getVelocidad() <= LIMITE_VELOCIDAD) {
-                        return;
+                double velocidadActual = locationActual.getVelocidad();
+
+                if (velocidadActual <= LIMITE_VELOCIDAD) {
+                        return new DriverSafetyResponse.SpeedStatus(
+                                velocidadActual,
+                                LIMITE_VELOCIDAD,
+                                false,
+                                false);
                 }
 
                 LocalDateTime inicioExceso;
 
-                Optional<BusLocation> ultimaUbicacionNormal = locationRepository
+                Optional<BusLocation> ultimaUbicacionNormal =
+                        locationRepository
                                 .findFirstByTripIdAndVelocidadLessThanEqualOrderByFechaHoraDesc(
-                                                trip.getId(),
-                                                LIMITE_VELOCIDAD);
+                                        trip.getId(),
+                                        LIMITE_VELOCIDAD);
 
                 if (ultimaUbicacionNormal.isPresent()) {
 
-                        Optional<BusLocation> primeraUbicacionExceso = locationRepository
+                        Optional<BusLocation> primeraUbicacionExceso =
+                                locationRepository
                                         .findFirstByTripIdAndFechaHoraAfterOrderByFechaHoraAsc(
-                                                        trip.getId(),
-                                                        ultimaUbicacionNormal
-                                                                        .get()
-                                                                        .getFechaHora());
+                                                trip.getId(),
+                                                ultimaUbicacionNormal
+                                                        .get()
+                                                        .getFechaHora());
 
                         if (primeraUbicacionExceso.isEmpty()) {
-                                return;
+                                return new DriverSafetyResponse.SpeedStatus(
+                                        velocidadActual,
+                                        LIMITE_VELOCIDAD,
+                                        true,
+                                        false);
                         }
 
                         inicioExceso = primeraUbicacionExceso
-                                        .get()
-                                        .getFechaHora();
+                                .get()
+                                .getFechaHora();
 
                 } else {
 
-                        Optional<BusLocation> primeraUbicacionViaje = locationRepository
+                        Optional<BusLocation> primeraUbicacionViaje =
+                                locationRepository
                                         .findFirstByTripIdOrderByFechaHoraAsc(
-                                                        trip.getId());
+                                                trip.getId());
 
                         if (primeraUbicacionViaje.isEmpty()) {
-                                return;
+                                return new DriverSafetyResponse.SpeedStatus(
+                                        velocidadActual,
+                                        LIMITE_VELOCIDAD,
+                                        true,
+                                        false);
                         }
 
                         inicioExceso = primeraUbicacionViaje
-                                        .get()
-                                        .getFechaHora();
+                                .get()
+                                .getFechaHora();
                 }
 
                 long segundosExceso = Duration.between(
-                                inicioExceso,
-                                locationActual.getFechaHora()).getSeconds();
+                        inicioExceso,
+                        locationActual.getFechaHora())
+                        .getSeconds();
 
                 if (segundosExceso <= SEGUNDOS_EXCESO_PERMITIDOS) {
-                        return;
+                        return new DriverSafetyResponse.SpeedStatus(
+                                velocidadActual,
+                                LIMITE_VELOCIDAD,
+                                true,
+                                false);
                 }
 
-                boolean yaExisteInfraccion = violationRepository
+                boolean yaExisteInfraccion =
+                        violationRepository
                                 .existsByTripIdAndTipoAndFechaHoraAfter(
-                                                trip.getId(),
-                                                "SPEEDING",
-                                                inicioExceso);
+                                        trip.getId(),
+                                        "SPEEDING",
+                                        inicioExceso);
 
                 if (yaExisteInfraccion) {
-                        return;
+                        return new DriverSafetyResponse.SpeedStatus(
+                                velocidadActual,
+                                LIMITE_VELOCIDAD,
+                                true,
+                                false);
                 }
 
                 Violation violation = new Violation(
-                                trip.getDriver(),
-                                trip.getBus(),
-                                trip,
-                                "SPEEDING",
-                                "Exceso de velocidad durante más de "
-                                                + SEGUNDOS_EXCESO_PERMITIDOS
-                                                + " segundos",
-                                locationActual.getVelocidad(),
-                                LIMITE_VELOCIDAD);
+                        trip.getDriver(),
+                        trip.getBus(),
+                        trip,
+                        "SPEEDING",
+                        "Exceso de velocidad durante más de "
+                                + SEGUNDOS_EXCESO_PERMITIDOS
+                                + " segundos",
+                        velocidadActual,
+                        LIMITE_VELOCIDAD);
 
                 violationRepository.save(violation);
+
+                return new DriverSafetyResponse.SpeedStatus(
+                        velocidadActual,
+                        LIMITE_VELOCIDAD,
+                        true,
+                        true);
         }
 
         @GetMapping("/trip/{tripId}")

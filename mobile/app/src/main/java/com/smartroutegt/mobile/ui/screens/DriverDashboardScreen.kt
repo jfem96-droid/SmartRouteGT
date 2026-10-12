@@ -35,6 +35,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import com.smartroutegt.mobile.network.ApiClient
 import com.smartroutegt.mobile.network.DriverApiService
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import retrofit2.HttpException
 import java.io.IOException
 import androidx.compose.foundation.rememberScrollState
@@ -53,8 +54,12 @@ import com.smartroutegt.mobile.network.NextStopDto
 @Composable
 fun DriverDashboardScreen(
     assignment: DriverRouteAssignmentDto,
-    initialTrip: TripDto?
+    initialTrip: TripDto?,
+    onLogout: () -> Unit
 ) {
+    var selectedV3Tab by remember {
+        mutableStateOf(SmartRouteV3DriverTab.HOME)
+    }
     val busAsignado = assignment.bus.codigo
     val rutaAsignada = assignment.route.nombre
     val pilotoNombre = assignment.driver.nombre
@@ -76,6 +81,32 @@ fun DriverDashboardScreen(
 
     val sancionesConfirmadas = assignment.driver.sancionesConfirmadas
     var velocidadActual by remember { mutableStateOf(0f) }
+
+    var speedWarning by remember { mutableStateOf(false) }
+    var speedViolationCreated by remember { mutableStateOf(false) }
+    var speedLimitKmh by remember { mutableStateOf(70.0) }
+    var backendSpeedKmh by remember { mutableStateOf(0.0) }
+
+    var stopSafetyStatus by remember {
+        mutableStateOf<com.smartroutegt.mobile.network.DriverStopStatusDto?>(null)
+    }
+
+    var violations by remember {
+        mutableStateOf(emptyList<com.smartroutegt.mobile.network.ViolationDto>())
+    }
+
+    var loadingViolations by remember {
+        mutableStateOf(false)
+    }
+
+    var violationsError by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    var violationsRefreshKey by remember {
+        mutableStateOf(0)
+    }
+
     var proximaParada by remember {
         mutableStateOf<NextStopDto?>(null)
     }
@@ -92,6 +123,20 @@ fun DriverDashboardScreen(
     }
 
     var errorParadas by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    var geometryPoints by remember {
+        mutableStateOf(
+            emptyList<com.smartroutegt.mobile.data.remote.RouteGeometryPointDto>()
+        )
+    }
+
+    var loadingGeometry by remember {
+        mutableStateOf(true)
+    }
+
+    var geometryError by remember {
         mutableStateOf<String?>(null)
     }
     var estadoGps by remember { mutableStateOf("Permiso pendiente") }
@@ -117,6 +162,25 @@ fun DriverDashboardScreen(
             errorParadas = "No se pudo conectar con el servidor"
         }
         cargandoParadas = false
+    }
+
+    LaunchedEffect(assignment.route.id) {
+        loadingGeometry = true
+        geometryError = null
+
+        try {
+            val geometry =
+                com.smartroutegt.mobile.data.remote.ApiClient
+                    .routeApiService
+                    .getRouteGeometry(assignment.route.id)
+
+            geometryPoints = geometry.points
+        } catch (exception: Exception) {
+            geometryPoints = emptyList()
+            geometryError = "No se pudo cargar la geometría de la ruta"
+        } finally {
+            loadingGeometry = false
+        }
     }
 
     LaunchedEffect(viajeActual?.id) {
@@ -164,8 +228,14 @@ fun DriverDashboardScreen(
     var latitud by remember { mutableStateOf<Double?>(null) }
     var longitud by remember { mutableStateOf<Double?>(null) }
 
-    var gpsActivo by remember {
-        mutableStateOf(false)
+    var gpsActivo by remember(viajeActual?.id) {
+        mutableStateOf(viajeActual != null)
+    }
+
+    LaunchedEffect(viajeActual?.id) {
+        if (viajeActual != null && !gpsActivo) {
+            gpsActivo = true
+        }
     }
 
     DisposableEffect(gpsActivo, viajeActual?.id) {
@@ -213,6 +283,10 @@ fun DriverDashboardScreen(
 
         val locationListener = object : LocationListener {
             override fun onLocationChanged(location: Location) {
+                android.util.Log.d(
+                    "SmartRouteGPS",
+                    "GPS RECIBIDO lat=${location.latitude} lon=${location.longitude}"
+                )
                 latitud = location.latitude
                 longitud = location.longitude
 
@@ -229,12 +303,38 @@ fun DriverDashboardScreen(
                 if (tripId != null) {
                     coroutineScope.launch {
                         try {
-                            driverApiService.registerLocation(
+
+                            android.util.Log.d(
+                                "SmartRouteGPS",
+                                "ENVIANDO GPS tripId=$tripId"
+                            )
+
+                            val safetyResponse = driverApiService.registerLocation(
                                 tripId = tripId,
                                 latitud = location.latitude,
                                 longitud = location.longitude,
                                 velocidad = velocidadActual.toDouble()
                             )
+
+                            android.util.Log.d(
+                                "SmartRouteGPS",
+                                "GPS GUARDADO tripId=$tripId"
+                            )
+
+                            safetyResponse.speed?.let { speed ->
+                                speedWarning = speed.warning
+                                speedLimitKmh = speed.limitKmh
+                                backendSpeedKmh = speed.currentKmh
+
+                                if (speed.violationCreated) {
+                                    speedViolationCreated = true
+
+                                    coroutineScope.launch {
+                                        delay(5000L)
+                                        speedViolationCreated = false
+                                    }
+                                }
+                            }
 
                             try {
                                 val siguienteParada =
@@ -250,10 +350,29 @@ fun DriverDashboardScreen(
                                 estadoProximaParada =
                                     "No se pudo consultar la próxima parada"
                             }
+
+                            stopSafetyStatus = safetyResponse.stop
                         } catch (exception: HttpException) {
+                            android.util.Log.e(
+                                "SmartRouteGPS",
+                                "HTTP ERROR ${exception.code()}: ${exception.message()}",
+                                exception
+                            )
                             estadoGps = "Error al registrar ubicación"
                         } catch (exception: IOException) {
+                            android.util.Log.e(
+                                "SmartRouteGPS",
+                                "IO ERROR: ${exception.message}",
+                                exception
+                            )
                             estadoGps = "Sin conexión con el servidor"
+                        } catch (exception: Exception) {
+                            android.util.Log.e(
+                                "SmartRouteGPS",
+                                "ERROR INESPERADO: ${exception.message}",
+                                exception
+                            )
+                            estadoGps = "Error al procesar ubicación"
                         }
                     }
                 }
@@ -263,7 +382,7 @@ fun DriverDashboardScreen(
         locationManager.requestLocationUpdates(
             proveedor,
             2000L,
-            1f,
+            0f,
             locationListener
         )
 
@@ -289,455 +408,291 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
     }
 }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp)
+    val navigateHome = {
+        selectedV3Tab = SmartRouteV3DriverTab.HOME
+    }
+
+    val navigateRoute = {
+        selectedV3Tab = SmartRouteV3DriverTab.ROUTE
+    }
+
+    val navigateGps = {
+        selectedV3Tab = SmartRouteV3DriverTab.GPS
+    }
+
+    val navigateAlerts = {
+        violationsRefreshKey++
+        selectedV3Tab = SmartRouteV3DriverTab.ALERTS
+    }
+
+    LaunchedEffect(
+        selectedV3Tab,
+        violationsRefreshKey,
+        assignment.driver.id
     ) {
-        Text(
-            text = "Panel del piloto",
-            style = MaterialTheme.typography.headlineMedium
-        )
+        if (selectedV3Tab != SmartRouteV3DriverTab.ALERTS) {
+            return@LaunchedEffect
+        }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        loadingViolations = true
+        violationsError = null
 
-        Text(
-            text = "Piloto: $pilotoNombre",
-            style = MaterialTheme.typography.titleMedium
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(text = "Licencia: $pilotoLicencia")
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Card(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-        ) {
-            Text(
-                text = "Operación asignada",
-                style = MaterialTheme.typography.titleMedium
+        try {
+            violations = driverApiService.getViolationsByDriver(
+                assignment.driver.id
             )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(text = "Bus: $busAsignado")
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(text = "Ruta: $rutaAsignada")
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "Estado del viaje: $estadoViaje",
-                style = MaterialTheme.typography.bodyLarge
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "Sanciones confirmadas: $sancionesConfirmadas",
-                style = MaterialTheme.typography.bodyLarge
-            )
+        } catch (exception: HttpException) {
+            violationsError =
+                "No se pudieron cargar las alertas (HTTP ${exception.code()})"
+        } catch (exception: IOException) {
+            violationsError =
+                "No se pudo conectar con el servidor"
+        } catch (exception: Exception) {
+            violationsError =
+                "No se pudieron cargar las alertas"
+        } finally {
+            loadingViolations = false
         }
     }
 
-    Spacer(modifier = Modifier.height(16.dp))
+    val navigateProfile = {
+        selectedV3Tab = SmartRouteV3DriverTab.PROFILE
+    }
 
-        Card(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Text(
-                    text = "Ruta y paradas",
-                    style = MaterialTheme.typography.titleMedium
-                )
+    if (selectedV3Tab == SmartRouteV3DriverTab.GPS) {
+        DriverGpsV3Content(
+            tripActive = viajeActual != null,
+            gpsActive = viajeActual != null && gpsActivo,
+            speedKmh = velocidadActual,
+            speedWarning = speedWarning,
+            speedViolationCreated = speedViolationCreated,
+            speedLimitKmh = speedLimitKmh,
+            backendSpeedKmh = backendSpeedKmh,
+            stopSafetyStatus = stopSafetyStatus,
+            latitude = latitud,
+            longitude = longitud,
+            nextStopName = proximaParada?.parada,
+            busCode = busAsignado,
+            routeName = rutaAsignada,
+            onHome = navigateHome,
+            onRoute = navigateRoute,
+            onGps = navigateGps,
+            onAlerts = navigateAlerts,
+            onProfile = navigateProfile,
+            onReport = { selectedV3Tab = SmartRouteV3DriverTab.REPORT }
+        )
 
-                Spacer(modifier = Modifier.height(12.dp))
+        return
+    }
 
-                Text(
-                    text = "Próxima parada",
-                    style = MaterialTheme.typography.labelLarge
-                ) 
+    if (selectedV3Tab == SmartRouteV3DriverTab.ALERTS) {
+        DriverAlertsV3Content(
+            sanctions = sancionesConfirmadas,
+            driverActive = assignment.driver.activo,
+            tripActive = viajeActual != null,
+            violations = violations,
+            loadingViolations = loadingViolations,
+            violationsError = violationsError,
+            onHome = navigateHome,
+            onRoute = navigateRoute,
+            onGps = navigateGps,
+            onAlerts = navigateAlerts,
+            onProfile = navigateProfile,
+            onReport = { selectedV3Tab = SmartRouteV3DriverTab.REPORT }
+        )
 
-                Text(
-                    text = estadoProximaParada,
-                    style = MaterialTheme.typography.bodyLarge
-                )
+        return
+    }
 
-                Spacer(modifier = Modifier.height(16.dp))
+    if (selectedV3Tab == SmartRouteV3DriverTab.REPORT) {
+        DriverIncidentV3Screen(
+            onBack = { selectedV3Tab = SmartRouteV3DriverTab.HOME },
+            api = driverApiService,
+            tripId = viajeActual?.id,
+            latitude = latitud,
+            longitude = longitud,
+            onTabSelected = { selectedV3Tab = it }
+        )
+        return
+    }
+    if (selectedV3Tab == SmartRouteV3DriverTab.PROFILE) {
+        DriverProfileV3Content(
+            name = pilotoNombre,
+            license = pilotoLicencia,
+            phone = assignment.driver.telefono,
+            busCode = busAsignado,
+            routeName = rutaAsignada,
+            driverActive = assignment.driver.activo,
+            onLogout = onLogout,
+            onHome = navigateHome,
+            onRoute = navigateRoute,
+            onGps = navigateGps,
+            onAlerts = navigateAlerts,
+            onProfile = navigateProfile,
+            onReport = { selectedV3Tab = SmartRouteV3DriverTab.REPORT }
+        )
 
-                Text(
-                    text = "Paradas de la ruta",
-                    style = MaterialTheme.typography.labelLarge
-                )
+        return
+    }
 
-                Spacer(modifier = Modifier.height(8.dp))
+    if (selectedV3Tab == SmartRouteV3DriverTab.ROUTE) {
+        DriverRouteV3Content(
+            routeName = rutaAsignada,
+            busCode = busAsignado,
+            routeStops = paradas,
+            geometryPoints = geometryPoints,
+            nextStop = proximaParada,
+            latitude = latitud,
+            longitude = longitud,
+            tripActive = viajeActual != null,
+            loadingGeometry = loadingGeometry,
+            geometryError = geometryError,
 
-                when {
-                    cargandoParadas -> {
-                        Text(text = "Cargando paradas...")
-                    }
+            onHome = {
+                selectedV3Tab = SmartRouteV3DriverTab.HOME
+            },
+            onRoute = {
+                selectedV3Tab = SmartRouteV3DriverTab.ROUTE
+            },
+            onGps = {
+                selectedV3Tab = SmartRouteV3DriverTab.GPS
+            },
+            onAlerts = {
+                selectedV3Tab = SmartRouteV3DriverTab.ALERTS
+            },
+            onProfile = {
+                selectedV3Tab = SmartRouteV3DriverTab.PROFILE
+            },
+            onReport = { selectedV3Tab = SmartRouteV3DriverTab.REPORT }
+        )
 
-                    errorParadas != null -> {
-                        Text(text = errorParadas!!)
-                    }
+        return
+    }
 
-                    paradas.isEmpty() -> {
-                        Text(text = "No hay paradas disponibles")
-                    }
-
-                    else -> {
-                        paradas.forEach { routeStop ->
-                            Text(text = "• ${routeStop.stop.nombre}")
-                        }
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Card(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Text(
-                    text = "Mapa de la ruta",
-                    style = MaterialTheme.typography.titleMedium
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                AndroidView(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(300.dp),
-                        factory = { mapContext ->
-                        Configuration.getInstance().userAgentValue =
-                            mapContext.packageName
-
-                        MapView(mapContext).apply {
-                            setTileSource(TileSourceFactory.MAPNIK)
-                            setMultiTouchControls(true)
-                            controller.setZoom(14.0)
-                        }
-                    },
-                    update = { mapView ->
-                        mapView.overlays.removeAll { overlay ->
-                            overlay is Marker || overlay is Polyline
-                        }
-
-                        val paradasOrdenadas = paradas.sortedBy { it.orden }
-
-                        if (paradasOrdenadas.size >= 2) {
-                            val lineaRuta = Polyline().apply {
-                                setPoints(
-                                    paradasOrdenadas.map { routeStop ->
-                                        GeoPoint(routeStop.stop.latitud, routeStop.stop.longitud)
-                                    }
-                                )
-                                outlinePaint.color = Color.parseColor("#2563EB")
-                                outlinePaint.strokeWidth = 10f
-                            }
-                            mapView.overlays.add(lineaRuta)
-                        }
-
-                        paradasOrdenadas.forEach { routeStop ->
-                            val marcadorParada = Marker(mapView).apply {
-                                position = GeoPoint(
-                                    routeStop.stop.latitud,
-                                    routeStop.stop.longitud
-                                )
-                                title = "${routeStop.orden}. ${routeStop.stop.nombre}"
-                                snippet = "Checkpoint de parada"
-                                setAnchor(
-                                    Marker.ANCHOR_CENTER,
-                                    Marker.ANCHOR_BOTTOM
-                                )
-                            }
-
-                            mapView.overlays.add(marcadorParada)
-                        }
-
-                        val latitudActual = latitud
-                        val longitudActual = longitud
-
-                        if (latitudActual != null && longitudActual != null) {
-                            val marcadorBus = Marker(mapView).apply {
-                                position = GeoPoint(
-                                    latitudActual,
-                                    longitudActual
-                                )
-                                title = "Ubicación actual del bus"
-                                snippet = "Piloto: $pilotoNombre"
-                                setAnchor(
-                                    Marker.ANCHOR_CENTER,
-                                    Marker.ANCHOR_BOTTOM
-                                )
-                            }
-
-                            mapView.overlays.add(marcadorBus)
-                        }
-
-                        proximaParada?.let { siguienteParada ->
-                            val marcadorProximaParada = Marker(mapView).apply {
-                                position = GeoPoint(
-                                    siguienteParada.latitud,
-                                    siguienteParada.longitud
-                                )
-                                title = "Próxima parada: ${siguienteParada.parada}"
-                                snippet = "Parada ${siguienteParada.orden}"
-                                setAnchor(
-                                    Marker.ANCHOR_CENTER,
-                                    Marker.ANCHOR_BOTTOM
-                                )
-                            }
-
-                            mapView.overlays.add(marcadorProximaParada)
-                        }
-
-                        paradas.firstOrNull()?.let { primeraParada ->
-                            mapView.controller.setCenter(
-                                GeoPoint(
-                                    primeraParada.stop.latitud,
-                                    primeraParada.stop.longitud
-                                )
-                            )
-                        }
-
-                        mapView.invalidate()
-                    }
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Card(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Text(
-                    text = "GPS y ubicación",
-                    style = MaterialTheme.typography.titleMedium
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = "Velocidad actual",
-                    style = MaterialTheme.typography.labelLarge
-                )
-
-                Text(
-                    text = "%.1f km/h".format(velocidadActual),
-                    style = MaterialTheme.typography.headlineSmall
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(text = "Estado GPS: $estadoGps")
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-    text = if (latitud != null && longitud != null) {
-        val paradaCercana = paradas.minByOrNull { routeStop ->
-            val resultado = FloatArray(1)
-
-            android.location.Location.distanceBetween(
-                latitud!!,
-                longitud!!,
-                routeStop.stop.latitud,
-                routeStop.stop.longitud,
-                resultado
-            )
-
-            resultado[0]
-        }
-
-        if (paradaCercana != null) {
-            val resultado = FloatArray(1)
-
-            android.location.Location.distanceBetween(
-                latitud!!,
-                longitud!!,
-                paradaCercana.stop.latitud,
-                paradaCercana.stop.longitud,
-                resultado
-            )
-
-            if (resultado[0] <= 300) {
-                "Ubicación: Cerca de ${paradaCercana.stop.nombre}"
-            } else {
-                "Ubicación: En ruta"
-            }
+    DriverDashboardV3Content(
+        pilotoNombre = pilotoNombre,
+        pilotoLicencia = pilotoLicencia,
+        busCodigo = busAsignado,
+        rutaNombre = rutaAsignada,
+        estadoViaje = estadoViaje,
+        estadoGps = if (viajeActual != null && gpsActivo) {
+            "Transmitiendo"
         } else {
-            "Ubicación: En ruta"
-        }
-    } else {
-        "Ubicación: no disponible"
-    }
-)
+            "En espera"
+        },
+        velocidadActual = if (viajeActual != null && gpsActivo) {
+            velocidadActual
+        } else {
+            0f
+        },
+        speedWarning = speedWarning,
+        speedViolationCreated = speedViolationCreated,
+        speedLimitKmh = speedLimitKmh,
+        backendSpeedKmh = backendSpeedKmh,
+        stopSafetyStatus = stopSafetyStatus,
+        proximaParada = proximaParada,
+        sancionesConfirmadas = sancionesConfirmadas,
+        viajeActivo = viajeActual != null,
+        tripId = viajeActual?.id,
+        iniciandoViaje = iniciandoViaje,
+        finalizandoViaje = finalizandoViaje,
+        errorViaje = errorViaje,
 
-                Spacer(modifier = Modifier.height(16.dp))
+        onStartTrip = {
+            coroutineScope.launch {
+                iniciandoViaje = true
+                errorViaje = null
 
-                Button(
-                    onClick = {
-                        val permisoPreciso = ContextCompat.checkSelfPermission(
+                try {
+                    val nuevoViaje = driverApiService.startTrip(
+                        assignment.id
+                    )
+
+                    viajeActual = nuevoViaje
+                    estadoViaje = "En curso"
+
+                    val permisoPreciso =
+                        ContextCompat.checkSelfPermission(
                             context,
                             Manifest.permission.ACCESS_FINE_LOCATION
                         )
 
-                        val permisoAproximado = ContextCompat.checkSelfPermission(
+                    val permisoAproximado =
+                        ContextCompat.checkSelfPermission(
                             context,
                             Manifest.permission.ACCESS_COARSE_LOCATION
                         )
 
-                        if (
-                            permisoPreciso == PackageManager.PERMISSION_GRANTED ||
-                            permisoAproximado == PackageManager.PERMISSION_GRANTED
-                        ) {
-                            gpsActivo = true
-                        } else {
-                            permisoUbicacionLauncher.launch(
-                                arrayOf(
-                                    Manifest.permission.ACCESS_FINE_LOCATION,
-                                    Manifest.permission.ACCESS_COARSE_LOCATION
-                                )
+                    if (
+                        permisoPreciso == PackageManager.PERMISSION_GRANTED ||
+                        permisoAproximado == PackageManager.PERMISSION_GRANTED
+                    ) {
+                        gpsActivo = true
+                    } else {
+                        permisoUbicacionLauncher.launch(
+                            arrayOf(
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION
                             )
-                        }
+                        )
                     }
-                ) {
-                    Text(
-                        text = if (gpsActivo) {
-                            "GPS activo"
-                        } else {
-                            "Activar GPS"
-                        }
-                    )
+                } catch (exception: HttpException) {
+                    errorViaje = "No se pudo iniciar el viaje"
+                } catch (exception: IOException) {
+                    errorViaje = "No se pudo conectar con el servidor"
+                } finally {
+                    iniciandoViaje = false
                 }
             }
-        }
+        },
 
-        Spacer(modifier = Modifier.height(12.dp))
+        onFinishTrip = {
+            val tripId = viajeActual?.id
 
-        Text(text = "Alertas: $alertaActual")
+            if (tripId != null) {
+                coroutineScope.launch {
+                    finalizandoViaje = true
+                    errorViaje = null
 
-        Spacer(modifier = Modifier.height(24.dp))
+                    try {
+                        driverApiService.finishTrip(tripId)
 
-        Card(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Text(
-                    text = "Control del viaje",
-                    style = MaterialTheme.typography.titleMedium
-                )
+                        viajeActual = null
+                        estadoViaje = "Finalizado"
+                        gpsActivo = false
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(text = "Estado: $estadoViaje")
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(
-                    onClick = {
-                        coroutineScope.launch {
-                            iniciandoViaje = true
-                            errorViaje = null
-
-                            try {
-                                val nuevoViaje = driverApiService.startTrip(
-                                    assignment.id
-                                )
-
-                                viajeActual = nuevoViaje
-                                estadoViaje = "En curso"
-                            } catch (exception: HttpException) {
-                                errorViaje = "No se pudo iniciar el viaje"
-                            } catch (exception: IOException) {
-                                errorViaje = "No se pudo conectar con el servidor"
-                            } finally {
-                                iniciandoViaje = false
-                            }
-                        }
-                    },
-                    enabled = viajeActual == null && !iniciandoViaje,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = if (iniciandoViaje) {
-                            "Iniciando..."
-                        } else {
-                            "Iniciar viaje"
-                        }
-                    )
-                }
-
-                if (errorViaje != null) {
-                    Text(
-                        text = errorViaje!!,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Button(
-                    onClick = {
-                        val tripId = viajeActual?.id
-
-                        if (tripId != null) {
-                            coroutineScope.launch {
-                                finalizandoViaje = true
-                                errorViaje = null
-
-                                try {
-                                    driverApiService.finishTrip(tripId)
-
-                                    viajeActual = null
-                                    estadoViaje = "Finalizado"
-                                    gpsActivo = false
-                                } catch (exception: HttpException) {
-                                    errorViaje = "No se pudo finalizar el viaje"
-                                } catch (exception: IOException) {
-                                    errorViaje = "No se pudo conectar con el servidor"
-                                } finally {
-                                    finalizandoViaje = false
-                                }
-                            }
-                        }
-                    },
-                    enabled = viajeActual != null && !finalizandoViaje,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = if (finalizandoViaje) {
-                            "Finalizando..."
-                        } else {
-                            "Finalizar viaje"
-                        }
-                    )
+                        speedWarning = false
+                        speedViolationCreated = false
+                        backendSpeedKmh = 0.0
+                        stopSafetyStatus = null
+                        velocidadActual = 0f
+                    } catch (exception: HttpException) {
+                        errorViaje = "No se pudo finalizar el viaje"
+                    } catch (exception: IOException) {
+                        errorViaje =
+                            "No se pudo conectar con el servidor"
+                    } finally {
+                        finalizandoViaje = false
+                    }
                 }
             }
-        }
-    }
+        },
+
+        onHome = {
+            selectedV3Tab = SmartRouteV3DriverTab.HOME
+        },
+        onRoute = {
+            selectedV3Tab = SmartRouteV3DriverTab.ROUTE
+        },
+        onGps = {
+            selectedV3Tab = SmartRouteV3DriverTab.GPS
+        },
+        onAlerts = {
+            selectedV3Tab = SmartRouteV3DriverTab.ALERTS
+        },
+        onProfile = {
+            selectedV3Tab = SmartRouteV3DriverTab.PROFILE
+        },
+        onReport = { selectedV3Tab = SmartRouteV3DriverTab.REPORT }
+    )
 }

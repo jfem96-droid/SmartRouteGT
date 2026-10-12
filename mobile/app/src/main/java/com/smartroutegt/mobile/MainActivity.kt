@@ -17,11 +17,14 @@ import com.smartroutegt.mobile.ui.screens.ForgotPasswordScreen
 import com.smartroutegt.mobile.ui.theme.SmartRouteGTTheme
 import com.smartroutegt.mobile.ui.screens.LoginScreen
 import com.smartroutegt.mobile.ui.screens.RoleSelectionScreen
+import com.smartroutegt.mobile.ui.screens.PassengerProfileScreen
 import com.smartroutegt.mobile.ui.screens.PassengerHomeScreen
 import com.smartroutegt.mobile.ui.screens.RouteSearchScreen
 import com.smartroutegt.mobile.ui.screens.NearbyBusesScreen
 import com.smartroutegt.mobile.ui.screens.BusInfoScreen
 import com.smartroutegt.mobile.ui.screens.EtaScreen
+import com.smartroutegt.mobile.ui.screens.PassengerFeedbackScreen
+import com.smartroutegt.mobile.ui.screens.PassengerReportV3Form
 import com.smartroutegt.mobile.ui.screens.SosScreen
 import com.smartroutegt.mobile.ui.screens.DriverReportScreen
 import com.smartroutegt.mobile.ui.screens.RouteReportScreen
@@ -47,6 +50,9 @@ class MainActivity : ComponentActivity() {
                 var currentScreen by remember {
                     mutableStateOf("accessType")
                 }
+
+                var passengerRoute by remember { mutableStateOf<com.smartroutegt.mobile.data.remote.RouteDto?>(null) }
+                var passengerBus by remember { mutableStateOf<com.smartroutegt.mobile.data.remote.BusMonitoringDto?>(null) }
 
                 var pendingVerificationEmail by remember {
                     mutableStateOf("")
@@ -334,13 +340,25 @@ class MainActivity : ComponentActivity() {
                         if (assignment != null) {
                             DriverDashboardScreen(
                                 assignment = assignment,
-                                initialTrip = viajeActual
+                                initialTrip = viajeActual,
+                                onLogout = {
+                                    SessionManager.clear()
+                                    asignacionActual = null
+                                    viajeActual = null
+                                    currentScreen = "accessType"
+                                }
                             )
                         }
                     }
 
                     "passenger" -> {
                         PassengerHomeScreen(
+                            selectedRoute = passengerRoute,
+                            selectedBus = passengerBus,
+                            onClearRoute = { passengerRoute = null; passengerBus = null },
+                            onBoarded = { currentScreen = "driverReport" },
+                            onRateDriver = { currentScreen = "rateDriver" },
+                            onComplimentDriver = { currentScreen = "complimentDriver" },
                             onSearchRoute = {
                                 currentScreen = "routeSearch"
                             },
@@ -361,12 +379,30 @@ class MainActivity : ComponentActivity() {
                             },
                             onRouteReport = {
                                 currentScreen = "routeReport"
+                            },
+                            onProfile = {
+                                currentScreen = "passengerProfile"
+                            }
+                        )
+                    }
+
+                    "passengerProfile" -> {
+                        PassengerProfileScreen(
+                            onBack = { currentScreen = "passenger" },
+                            onLogout = {
+                                SessionManager.clear()
+                                currentScreen = "accessType"
                             }
                         )
                     }
 
                     "routeSearch" -> {
                         RouteSearchScreen(
+                            onConfirmSelection = { route, bus ->
+                                passengerRoute = route
+                                passengerBus = bus
+                                currentScreen = "passenger"
+                            },
                             onBack = {
                                 currentScreen = "passenger"
                             }
@@ -404,15 +440,17 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
+                    "rateDriver" -> PassengerFeedbackScreen("RATING", onBack = { currentScreen = "passenger" })
+                    "complimentDriver" -> PassengerFeedbackScreen("COMPLIMENT", onBack = { currentScreen = "passenger" })
                     "driverReport" -> {
-                        DriverReportScreen(
+                        PassengerReportV3Form(routeProblem = false,
                             onBack = {
                                 currentScreen = "passenger"
                             }
                         )
                     }
                     "routeReport" -> {
-                        RouteReportScreen(
+                        PassengerReportV3Form(routeProblem = true,
                             onBack = {
                                 currentScreen = "passenger"
                             }
