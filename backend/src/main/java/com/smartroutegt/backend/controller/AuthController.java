@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,6 +24,8 @@ import com.smartroutegt.backend.service.EmailVerificationService.VerificationRes
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AuthController.class);
 
     private final UserRepository userRepository;
     private final DriverRepository driverRepository;
@@ -138,13 +142,14 @@ public class AuthController {
 
         User savedUser = userRepository.save(user);
 
+        // El usuario ya fue guardado. Una falla SMTP no debe borrar una cuenta
+        // ni provocar que el cliente intente crear un duplicado.
+        boolean emailSent = true;
         try {
             emailVerificationService.sendVerificationCode(savedUser);
         } catch (Exception exception) {
-            userRepository.delete(savedUser);
-
-            return ResponseEntity.internalServerError()
-                    .body("No fue posible enviar el código de verificación. Intenta nuevamente.");
+            emailSent = false;
+            LOGGER.error("Falló el correo de registro para userId={}", savedUser.getId(), exception);
         }
 
         Map<String, Object> response = new HashMap<>();
@@ -155,7 +160,10 @@ public class AuthController {
         response.put("activo", savedUser.isActivo());
         response.put("emailVerified", savedUser.isEmailVerified());
         response.put("verificationRequired", true);
-        response.put("message", "Te enviamos un código de verificación a tu correo");
+        response.put("emailSent", emailSent);
+        response.put("message", emailSent
+                ? "Te enviamos un código de verificación a tu correo"
+                : "Cuenta creada sin verificar. No se pudo enviar el código; utiliza Reenviar código.");
         response.put("fechaCreacion", savedUser.getFechaCreacion());
 
         if (savedUser.getDriver() != null) {
@@ -279,8 +287,9 @@ public class AuthController {
             );
 
         } catch (Exception exception) {
-            return ResponseEntity.internalServerError()
-                    .body("No fue posible enviar el código de verificación");
+            LOGGER.error("Falló el reenvío del código para userId={}", user.getId(), exception);
+            return ResponseEntity.status(503)
+                    .body("No se pudo enviar el código en este momento. Intenta más tarde.");
         }
     }
 

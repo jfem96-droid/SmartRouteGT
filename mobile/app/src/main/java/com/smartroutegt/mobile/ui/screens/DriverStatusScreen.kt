@@ -1,5 +1,7 @@
 package com.smartroutegt.mobile.ui.screens
 
+import com.smartroutegt.mobile.ui.theme.SmartRoutePalette
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,9 +29,9 @@ fun DriverStatusScreen(
     onRetry: () -> Unit,
     onLogout: () -> Unit
 ) {
-    val smartBlue = Color(0xFF2563EB)
-    val background = Color(0xFFF4F7FB)
-    val darkText = Color(0xFF172033)
+    val smartBlue = SmartRoutePalette.Mint
+    val background = SmartRoutePalette.Night
+    val darkText = SmartRoutePalette.Text
 
     val title = when (status) {
         "NO_ASSIGNMENT" -> "Sin asignación activa"

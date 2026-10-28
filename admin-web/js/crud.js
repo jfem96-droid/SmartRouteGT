@@ -179,7 +179,8 @@
     });
   }
 
-  function notify(t,type="success"){q("message").innerHTML=`<div class="alert alert-${type}">${esc(t)}</div>`;setTimeout(()=>{if(q("message"))q("message").innerHTML=""},4500)}
+ window.smartPrompt = smartPrompt;
+ function notify(t,type="success"){q("message").innerHTML=`<div class="alert alert-${type}">${esc(t)}</div>`;setTimeout(()=>{if(q("message"))q("message").innerHTML=""},4500)}
   async function act(path,opt={},ok="Operación completada"){try{await json(path,opt);notify(ok);return true}catch(e){notify(e.message||String(e),"danger");return false}}
   function openForm(title,body,submit,save="Guardar"){q("crudTitle").textContent=title;q("crudBody").innerHTML=body;q("crudSave").type="submit";q("crudSave").textContent=save;q("crudForm").onsubmit=async e=>{e.preventDefault();q("crudSave").disabled=true;try{if(await submit())modal.hide()}finally{q("crudSave").disabled=false}};modal.show()}
   const field=(label,id,value="",type="text",extra="")=>`<div class="col-md-6"><label class="form-label">${label}</label><input id="${id}" class="form-control" type="${type}" value="${esc(value??"")}" ${extra}></div>`;
@@ -884,7 +885,7 @@
   }
 )) return;let ok=await act(on?`/stops/${id}/activar`:`/stops/${id}`,{method:on?"PUT":"DELETE"},on?"Parada activada":"Parada desactivada");if(ok)loadStops()};
 
-  window.loadDrivers=async()=>{try{[driversCache,assignmentsCache]=await Promise.all([json("/drivers"),json("/assignments")]);q("driversTable").innerHTML=driversCache.map(x=>{let a=assignmentsCache.find(y=>y.driver?.id===x.id&&active(y));return `<tr><td>${x.id}</td><td><b>${esc(x.nombre)}</b><small class="crud-sub">${a?`${esc(a.bus?.codigo||"")} · ${esc(a.route?.nombre||"")}`:"Sin asignación activa"}</small></td><td>${esc(x.licencia)}</td><td>${esc(x.telefono||"—")}</td><td>${x.sancionesConfirmadas??0}</td><td>${pill(x.activo?"Activo":"Suspendido",x.activo?"success":"danger")}</td><td class="actions"><button class="table-btn edit" onclick="crudDriver(${x.id})">Editar</button><button class="table-btn info" onclick="crudAssign(${x.id})">${a?"Cambiar":"Asignar"}</button>${a?`<button class="table-btn off" onclick="crudUnassign(${a.id},${x.id})">Desasignar</button>`:""}<button class="table-btn ${x.activo?"off":"on"}" onclick="crudDriverToggle(${x.id},${!x.activo})">${x.activo?"Desactivar":"Reactivar"}</button><button class="table-btn delete-permanent" onclick="smartPermanentDelete(\'driver\',${x.id},\'${esc(x.nombre)}\',loadDrivers)">Eliminar</button></td></tr>`}).join("")||empty(7,"No hay pilotos.")}catch(e){q("driversTable").innerHTML=empty(7,e.message)}};
+  window.loadDrivers=async()=>{try{[driversCache,assignmentsCache]=await Promise.all([json("/drivers"),json("/assignments")]);q("driversTable").innerHTML=driversCache.map(x=>{let a=assignmentsCache.find(y=>y.driver?.id===x.id&&active(y));return `<tr><td>${x.id}</td><td><b>${esc(x.nombre)}</b><small class="crud-sub">${a?`${esc(a.bus?.codigo||"")} · ${esc(a.route?.nombre||"")} · ${esc(({SOLO_IDA:"Solo ida",SOLO_VUELTA:"Solo vuelta",IDA_Y_VUELTA:"Ida y vuelta"})[a.tipoRecorrido]||"Solo ida")}`:"Sin asignación activa"}</small></td><td>${esc(x.licencia)}</td><td>${esc(x.telefono||"—")}</td><td>${x.sancionesConfirmadas??0}</td><td>${pill(x.activo?"Activo":"Suspendido",x.activo?"success":"danger")}</td><td class="actions"><button class="table-btn edit" onclick="crudDriver(${x.id})">Editar</button><button class="table-btn info" onclick="crudAssign(${x.id})">${a?"Cambiar":"Asignar"}</button>${a?`<button class="table-btn off" onclick="crudUnassign(${a.id},${x.id})">Desasignar</button>`:""}<button class="table-btn ${x.activo?"off":"on"}" onclick="crudDriverToggle(${x.id},${!x.activo})">${x.activo?"Desactivar":"Reactivar"}</button><button class="table-btn delete-permanent" onclick="smartPermanentDelete(\'driver\',${x.id},\'${esc(x.nombre)}\',loadDrivers)">Eliminar</button></td></tr>`}).join("")||empty(7,"No hay pilotos.")}catch(e){q("driversTable").innerHTML=empty(7,e.message)}};
   window.crudDriver=id=>{let x=id?driversCache.find(v=>v.id===id):null;openForm(x?"Editar piloto":"Nuevo piloto",`<div class="row g-3">${field("Nombre","dn",x?.nombre,"text","required")}${field("Licencia","dl",x?.licencia,"text","required")}${field("Teléfono","dt",x?.telefono||"","tel")}</div>`,async()=>{let ok=await act(x?`/drivers/${id}`:"/drivers",{method:x?"PUT":"POST",body:JSON.stringify({nombre:val("dn"),licencia:val("dl"),telefono:val("dt"),activo:x?x.activo:true})},"Piloto guardado");if(ok)loadDrivers();return ok})};
   window.crudDriverToggle=async(id,on)=>{let body;
 
@@ -989,7 +990,11 @@ if (on) {
             value:x.id,
             label:`${x.codigo} · ${x.nombre}`
           })))
-        }</div>`,
+        }${sel("Recorrido autorizado","atipo",[
+          {value:"SOLO_IDA",label:"Solo ida"},
+          {value:"SOLO_VUELTA",label:"Solo vuelta"},
+          {value:"IDA_Y_VUELTA",label:"Ida y vuelta"}
+        ])}</div>`,
         async()=>{
           let ok=await act(
             "/assignments",
@@ -998,7 +1003,8 @@ if (on) {
               body:JSON.stringify({
                 driverId,
                 busId:num("ab"),
-                routeId:num("ar")
+                routeId:num("ar"),
+                tipoRecorrido:val("atipo")
               })
             },
             current ? "Asignación actualizada" : "Asignación creada"
@@ -1016,6 +1022,7 @@ if (on) {
         if(busSelect && current.bus?.id)
           busSelect.value=String(current.bus.id);
 
+        if(q("atipo") && current.tipoRecorrido) q("atipo").value=current.tipoRecorrido;
         if(routeSelect && current.route?.id)
           routeSelect.value=String(current.route.id);
       }
@@ -1027,7 +1034,40 @@ if (on) {
 
   const originalLoadRoutes=window.loadRoutes;
   if(originalLoadRoutes) window.loadRoutes=async()=>{await originalLoadRoutes();document.querySelectorAll("#routesTable tr").forEach((tr,i)=>{let x=routes[i],td=tr.lastElementChild;if(x&&td&&!td.querySelector(".route-stops-btn"))td.insertAdjacentHTML("beforeend",`<button class="table-btn info route-stops-btn" onclick="crudRouteStops(${x.id})">Paradas</button><button class="table-btn delete-permanent" onclick="smartPermanentDelete(\'route\',${x.id},\'${esc(x.nombre)}\',loadRoutes)">Eliminar</button>`)})};
-  window.crudRouteStops=async routeId=>{try{let[rels,stops]=await Promise.all([json(`/route-stops/route?routeId=${routeId}`),json("/stops")]);let rows=rels.map(x=>`<tr><td>${x.orden}</td><td>${esc(x.stop?.nombre||"—")}</td><td>${esc(x.tipoParada||"NORMAL")}</td><td>${x.tiempoMinimoSegundos??15}s / ${x.tiempoObjetivoSegundos??20}s / ${x.tiempoMaximoSegundos??30}s</td><td><button type="button" class="table-btn edit" onclick="crudStopConfig(${x.id},'${x.tipoParada||"NORMAL"}',${x.tiempoMinimoSegundos??15},${x.tiempoObjetivoSegundos??20},${x.tiempoMaximoSegundos??30},${routeId})">Configurar</button><button type="button" class="table-btn delete-permanent" onclick="crudRouteStopRemove(${x.id},${routeId})">Quitar</button></td></tr>`).join("");openForm("Paradas de la ruta",`<div class="crud-box"><div class="row g-2">${sel("Agregar parada","rs",stops.filter(active).map(x=>({value:x.id,label:x.nombre})))}${field("Orden","ro",rels.length+1,"number",'min="1"')}</div><button type="button" id="routeStopAdd" class="btn btn-outline-primary mt-3">Agregar a ruta</button></div><div class="table-responsive mt-4"><table><thead><tr><th>Orden</th><th>Parada</th><th>Tipo</th><th>Tiempos</th><th></th></tr></thead><tbody>${rows||empty(5,"Sin paradas configuradas.")}</tbody></table></div>`,async()=>true,"Cerrar");q("crudSave").type="button";q("crudSave").onclick=()=>modal.hide();q("routeStopAdd").onclick=async()=>{let ok=await act(`/route-stops?routeId=${routeId}&stopId=${num("rs")}&orden=${num("ro")}`,{method:"POST"},"Parada agregada");if(ok){await crudRouteStops(routeId)}}}catch(e){notify(e.message,"danger")}};
+  window.crudRouteStops=async routeId=>{try{let[rels,stops]=await Promise.all([json(`/route-stops/route?routeId=${routeId}`),json("/stops")]);let rows=rels.map(x=>`<tr><td>${x.orden}</td><td>${esc(x.stop?.nombre||"—")}</td><td>${esc(x.tipoParada||"NORMAL")}</td><td>${x.tiempoMinimoSegundos??15}s / ${x.tiempoObjetivoSegundos??20}s / ${x.tiempoMaximoSegundos??30}s</td><td><button type="button" class="table-btn edit" onclick="crudStopConfig(${x.id},'${x.tipoParada||"NORMAL"}',${x.tiempoMinimoSegundos??15},${x.tiempoObjetivoSegundos??20},${x.tiempoMaximoSegundos??30},${routeId})">Configurar</button><button type="button" class="table-btn delete-permanent" onclick="crudRouteStopRemove(${x.id},${routeId})">Quitar</button></td></tr>`).join("");openForm("Paradas de la ruta",`<div class="crud-box"><div class="row g-2">${sel("Agregar parada","rs",stops.filter(active).map(x=>({value:x.id,label:x.nombre})))}${field("Orden","ro",rels.length+1,"number",'min="1"')}</div><button type="button" id="returnStopEdit" class="btn btn-outline-info mt-3 ms-2">Configurar vuelta</button><button type="button" id="routeStopAdd" class="btn btn-outline-primary mt-3">Agregar a ruta</button></div><div class="table-responsive mt-4"><table><thead><tr><th>Orden</th><th>Parada</th><th>Tipo</th><th>Tiempos</th><th></th></tr></thead><tbody>${rows||empty(5,"Sin paradas configuradas.")}</tbody></table></div>`,async()=>true,"Cerrar");q("crudSave").type="button";q("crudSave").onclick=()=>modal.hide();q("returnStopEdit").onclick=()=>crudReturnStops(routeId);q("routeStopAdd").onclick=async()=>{let ok=await act(`/route-stops?routeId=${routeId}&stopId=${num("rs")}&orden=${num("ro")}`,{method:"POST"},"Parada agregada");if(ok){await crudRouteStops(routeId)}}}catch(e){notify(e.message,"danger")}};
+  // El administrador configura la vuelta explícitamente. No se invierte automáticamente la ida.
+  window.crudReturnStops=async routeId=>{
+    try{
+      const [itineraries,allStops]=await Promise.all([
+        json(`/routes/${routeId}/itineraries`),json("/stops")
+      ]);
+      const vuelta=itineraries.find(x=>x.direction==="VUELTA");
+      let ids=[...(vuelta?.stopIds||[])];
+      const paint=()=>{
+        const container=q("returnStopRows");
+        if(!container)return;
+        container.innerHTML=ids.map((id,i)=>`<div class="d-flex align-items-center justify-content-between gap-2 mb-2"><span>${i+1}. ${esc(allStops.find(s=>s.id===id)?.nombre||String(id))}</span><div><button class="btn btn-sm btn-outline-light" type="button" data-move="${i}" data-delta="-1" aria-label="Subir parada">↑</button> <button class="btn btn-sm btn-outline-light" type="button" data-move="${i}" data-delta="1" aria-label="Bajar parada">↓</button> <button class="btn btn-sm btn-outline-danger" type="button" data-remove="${i}">Quitar</button></div></div>`).join("")||"Configura al menos dos paradas de vuelta.";
+        container.querySelectorAll("[data-remove]").forEach(button=>button.onclick=()=>{ids.splice(Number(button.dataset.remove),1);paint()});
+        container.querySelectorAll("[data-move]").forEach(button=>button.onclick=()=>{
+          const i=Number(button.dataset.move),j=i+Number(button.dataset.delta);
+          if(j<0||j>=ids.length)return;
+          [ids[i],ids[j]]=[ids[j],ids[i]];paint();
+        });
+      };
+      openForm("Recorrido de vuelta · paradas ordenadas",
+        `<p class="crud-help">Defina el trayecto de vuelta real. No necesariamente es la ida invertida. No se permiten cambios si hay viajes activos.</p><div id="returnStopRows" class="crud-box mb-3"></div><div class="row g-2">${sel("Agregar parada","returnStopSelect",allStops.filter(active).map(s=>({value:s.id,label:s.nombre})))}</div><button id="returnStopAdd" type="button" class="btn btn-outline-info mt-2">Agregar parada</button>`,
+        async()=>{
+          if(ids.length<2){notify("Se requieren al menos dos paradas de vuelta", "warning");return false}
+          return !!(await act(`/routes/${routeId}/return-stops`, {method:"PUT",body:JSON.stringify({stopIds:ids})}, "Vuelta configurada"));
+        });
+      paint();
+      q("returnStopAdd").onclick=()=>{
+        const id=num("returnStopSelect");
+        if(!id||ids.includes(id)){notify("Selecciona una parada que no esté repetida", "warning");return}
+        ids.push(id);paint();
+      };
+    }catch(e){notify(e.message,"danger")}
+  };
   window.crudRouteStopRemove=async(id,routeId)=>{
     if(!await smartConfirm("La parada se quitará de esta ruta, pero seguirá existiendo en el catálogo general.",{title:"Quitar parada de la ruta",acceptText:"Quitar",danger:true}))return;
     let ok=await act(`/route-stops/${id}`,{method:"DELETE"},"Parada quitada de la ruta");

@@ -10,17 +10,67 @@
 <link rel="stylesheet" href="css/styles.css?v=14">
 <link rel="stylesheet" href="css/crud.css?v=10">
 <link rel="stylesheet" href="css/analytics.css?v=1">
+<link rel="stylesheet" href="css/login-portal.css?v=1">
+
+<!-- SR-ADMIN-DARK-V2-START -->
+<link rel="stylesheet" href="css/admin-dark-v2.css?v=20261023_225752">
+<!-- SR-ADMIN-DARK-V2-END -->
+
+<!-- SR-RESPONSIVE-1-2 -->
+<link rel="stylesheet" href="css/sr-responsive-v12.css?v=12">
+<link rel="stylesheet" href="css/operations-1.3.1.css?v=131-fix1">
+<link rel="stylesheet" href="css/sr-contraste-unificado-131.css?v=20261027-1">
 </head><body>
-<section id="login" class="login"><div class="login-card">
-<div class="brand"><img src="assets/logo.svg"><div><b>SmartRoute GT</b><small>Centro de control</small></div></div>
-<h1>Bienvenido</h1><p>Ingresa con una cuenta de administrador.</p><div id="loginMsg"></div>
-<form id="loginForm"><label>Correo</label><input id="email" class="form-control" type="email" required>
-<label>Contraseña</label><input id="password" class="form-control" type="password" required>
-<button class="btn btn-primary w-100">Iniciar sesión</button></form></div></section>
+<section id="login" class="login sr-access">
+  <div class="sr-access-shell">
+    <div class="sr-access-nav">
+      <a class="sr-access-brand" href="/" aria-label="SmartRoute GT, administrador">
+        <img src="assets/logo.svg" alt="" width="44" height="44">
+        <span><strong>SmartRoute GT</strong><small>Plataforma inteligente de movilidad</small></span>
+      </a>
+      <nav class="sr-access-links" aria-label="Navegación del sitio">
+        <a href="/" aria-current="page" class="sr-access-link-current"><i class="bi bi-shield-lock" aria-hidden="true"></i> Administrador</a>
+        <a href="/descargar/"><i class="bi bi-download" aria-hidden="true"></i> Descargas</a>
+      </nav>
+    </div>
+
+    <div class="sr-access-grid">
+      <div class="sr-access-intro">
+        <div class="sr-access-eyebrow"><span class="sr-access-beacon" aria-hidden="true"></span> CENTRO DE CONTROL · SMARTROUTE GT</div>
+        <h1>Una ciudad mejor <span>conectada.</span></h1>
+        <p class="sr-access-lead">Administra rutas, unidades, pilotos y monitoreo desde un solo lugar. El centro de operaciones de SmartRoute GT.</p>
+        <div class="sr-access-highlights" aria-label="Módulos del panel">
+          <div class="sr-access-feature"><div class="sr-access-feature-icon"><i class="bi bi-geo-alt" aria-hidden="true"></i></div><div><strong>Rutas y paradas</strong><small>Organiza la red de transporte</small></div></div>
+          <div class="sr-access-feature"><div class="sr-access-feature-icon"><i class="bi bi-bus-front" aria-hidden="true"></i></div><div><strong>Flota y pilotos</strong><small>Gestiona unidades y asignaciones</small></div></div>
+          <div class="sr-access-feature"><div class="sr-access-feature-icon"><i class="bi bi-map" aria-hidden="true"></i></div><div><strong>Monitoreo</strong><small>Consulta la información operativa</small></div></div>
+        </div>
+        <div class="sr-access-route-art" aria-hidden="true"><span class="sr-access-route-path"></span><span class="sr-access-pin sr-access-pin-start"><i class="bi bi-geo-alt-fill"></i></span><span class="sr-access-pin sr-access-pin-end"><i class="bi bi-bus-front-fill"></i></span><span class="sr-access-route-caption">GUATEMALA · MOVILIDAD INTELIGENTE</span></div>
+      </div>
+
+      <div class="sr-access-panel">
+        <div class="sr-access-panel-icon"><i class="bi bi-shield-lock" aria-hidden="true"></i></div>
+        <div class="sr-access-panel-eyebrow">ACCESO SEGURO</div>
+        <h2>Bienvenido de nuevo</h2>
+        <p class="sr-access-panel-lead">Ingresa con tu cuenta de administrador para acceder al centro de control.</p>
+        <div id="loginMsg" aria-live="polite"></div>
+        <form id="loginForm">
+          <label for="email">Correo electrónico</label>
+          <div class="sr-access-field"><i class="bi bi-envelope" aria-hidden="true"></i><input id="email" class="form-control" type="email" inputmode="email" autocomplete="username" placeholder="admin@ejemplo.com" required></div>
+          <label for="password">Contraseña</label>
+          <div class="sr-access-field"><i class="bi bi-lock" aria-hidden="true"></i><input id="password" class="form-control" type="password" autocomplete="current-password" placeholder="Tu contraseña" required></div>
+          <button class="btn btn-primary w-100 sr-access-submit" type="submit">Ingresar al panel <i class="bi bi-arrow-right" aria-hidden="true"></i></button>
+        </form>
+        <div class="sr-access-panel-foot"><i class="bi bi-phone" aria-hidden="true"></i><span>¿Buscas la aplicación Android? <a href="/descargar/">Ir a Descargas <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a></span></div>
+      </div>
+    </div>
+    <div class="sr-access-bottom"><span>© SmartRoute GT · Plataforma de administración</span><a href="/descargar/"><i class="bi bi-download" aria-hidden="true"></i> Aplicación Android</a></div>
+  </div>
+</section>
 <div id="app" class="d-none">
 <aside><div class="brand"><img src="assets/logo.svg"><div><b>SmartRoute</b><small>GT</small></div></div>
 <nav>
 <button data-view="dashboard" class="active"><i class="bi bi-grid"></i> Dashboard</button>
+<button data-view="viajes"><i class="bi bi-activity"></i> Viajes activos</button>
 <button data-view="mapa"><i class="bi bi-map"></i> Mapa en vivo</button>
 <button data-view="rutas"><i class="bi bi-signpost-split"></i> Rutas</button>
 <button data-view="paradas"><i class="bi bi-geo-alt"></i> Paradas</button>
@@ -31,12 +81,14 @@
 <button data-view="reportes"><i class="bi bi-clipboard2-pulse"></i> Reportes <span id="smartDriverIncidentBadge" class="badge rounded-pill bg-danger ms-1" hidden>0</span></button>
 <button data-view="auditoria"><i class="bi bi-clock-history"></i> Auditoría</button>
 <button data-view="usuarios"><i class="bi bi-people"></i> Usuarios</button>
-</nav><div class="account"><b id="adminName">Administrador</b><small id="adminEmail"></small><button id="logout">Cerrar sesión</button></div></aside>
-<div class="content"><header><button id="mobileMenu"><i class="bi bi-list"></i></button><div><small>SmartRoute GT</small><h2 id="title">Dashboard</h2></div><span class="online">● Sistema conectado</span></header>
+</nav><a class="sr-downloads-aside" href="/descargar/"><i class="bi bi-download" aria-hidden="true"></i> Descargas Android <i class="bi bi-arrow-up-right sr-downloads-external" aria-hidden="true"></i></a><div class="account"><b id="adminName">Administrador</b><small id="adminEmail"></small><button id="logout">Cerrar sesión</button></div></aside>
+<div class="content"><header><button id="mobileMenu"><i class="bi bi-list"></i></button><div><small>SmartRoute GT</small><h2 id="title">Dashboard</h2></div><a class="sr-downloads-top" href="/descargar/"><i class="bi bi-download" aria-hidden="true"></i> Descargas</a><span class="online">● Sistema conectado</span></header>
 <main><div id="message"></div>
 <section class="view active" id="dashboard"><div class="heading"><div><small>RESUMEN OPERATIVO</small><h1>Dashboard</h1><p>Estado general de la operación.</p></div><button id="refresh" class="btn btn-light">Actualizar</button></div>
-<div class="metrics"><article><i class="bi bi-bus-front"></i><span>Buses activos</span><b id="mBuses">—</b></article><article><i class="bi bi-person-badge"></i><span>Pilotos activos</span><b id="mDrivers">—</b></article><article><i class="bi bi-activity"></i><span>Viajes activos</span><b id="mTrips">—</b></article><article><i class="bi bi-shield-exclamation"></i><span>Sanciones pendientes</span><b id="mViolations">—</b></article><article><i class="bi bi-bell"></i><span>Alertas pendientes</span><b id="mAlerts">—</b></article></div>
+<div class="metrics"><article class="sr-metric-link" role="button" tabindex="0" data-smart-go="buses" aria-label="Abrir buses"><i class="bi bi-bus-front"></i><span>Buses activos</span><b id="mBuses">—</b><small class="sr-kpi-link-hint">Ver detalles →</small></article><article class="sr-metric-link" role="button" tabindex="0" data-smart-go="pilotos" aria-label="Abrir pilotos"><i class="bi bi-person-badge"></i><span>Pilotos activos</span><b id="mDrivers">—</b><small class="sr-kpi-link-hint">Ver detalles →</small></article><article class="sr-metric-link" role="button" tabindex="0" data-smart-go="viajes" aria-label="Abrir viajes"><i class="bi bi-activity"></i><span>Viajes activos</span><b id="mTrips">—</b><small class="sr-kpi-link-hint">Ver detalles →</small></article><article class="sr-metric-link" role="button" tabindex="0" data-smart-go="sanciones" aria-label="Abrir sanciones"><i class="bi bi-shield-exclamation"></i><span>Sanciones pendientes</span><b id="mViolations">—</b><small class="sr-kpi-link-hint">Ver detalles →</small></article><article class="sr-metric-link" role="button" tabindex="0" data-smart-go="alertas" aria-label="Abrir alertas"><i class="bi bi-bell"></i><span>Alertas pendientes</span><b id="mAlerts">—</b><small class="sr-kpi-link-hint">Ver detalles →</small></article><article class="sr-metric-link" role="button" tabindex="0" data-smart-go="reportes" aria-label="Abrir reportes generales"><i class="bi bi-clipboard2-data"></i><span>Reportes generales</span><b>Ver</b><small class="sr-kpi-link-hint">Abrir módulo →</small></article></div>
 <div class="panel"><h3>Monitoreo reciente</h3><div class="table-responsive"><table><thead><tr><th>Bus</th><th>Placa</th><th>Estado</th><th>Velocidad</th><th>Actualización</th></tr></thead><tbody id="dashTable"></tbody></table></div></div></section>
+<section class="view" id="viajes"><div class="heading"><div><small>DESPACHO</small><h1>Viajes activos</h1><p>Finaliza manualmente solo los viajes comprobados como terminados. Se requiere motivo y confirmación.</p></div><button type="button" class="btn btn-light" id="refreshTrips">Actualizar</button></div><div class="panel"><div class="table-responsive"><table><thead><tr><th>ID</th><th>Bus</th><th>Piloto</th><th>Ruta</th><th>Sentido</th><th>Inicio</th><th>Operación</th></tr></thead><tbody id="activeTripsTable"></tbody></table></div></div></section>
+<dialog id="srCloseTripDialog" class="sr-close-dialog"><form id="srCloseTripForm"><h3>Finalizar viaje desde centro de control</h3><p>Usar solamente tras confirmar que el bus no está transportando pasajeros ni ejecutando la ruta.</p><input type="hidden" id="srCloseTripId"><label for="srCloseTripReason">Motivo del cierre administrativo (mínimo 15 caracteres)</label><textarea id="srCloseTripReason" minlength="15" maxlength="1000" required rows="3" placeholder="Ej.: Viaje de prueba antiguo; operación concluida y verificada."></textarea><label for="srCloseTripConfirm">Escribe el ID numérico del viaje para confirmar</label><input type="text" inputmode="numeric" id="srCloseTripConfirm" required><div class="d-flex gap-2 justify-content-end mt-3"><button type="button" id="srCloseTripCancel" class="btn btn-secondary">Cancelar</button><button class="btn btn-danger" type="submit">Finalizar este viaje</button></div><p id="srCloseTripError" role="alert" class="mt-2"></p></form></dialog>
 <section class="view" id="mapa"><div class="heading"><div><small>GPS</small><h1>Mapa en vivo</h1><p>Ubicación actual de la flota.</p></div></div><div class="mapgrid"><div class="panel"><div id="map"></div></div><div class="panel"><h3>Flota</h3><div id="liveList"></div></div></div></section>
 <section class="view" id="rutas"><div class="heading"><div><small>CONFIGURACIÓN</small><h1>Rutas</h1></div><button id="newRoute" class="btn btn-primary">Nueva ruta</button></div><div class="panel"><table><thead><tr><th>ID</th><th>Código</th><th>Nombre</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="routesTable"></tbody></table></div></section>
 <section class="view" id="paradas"><div class="heading"><div><small>RED</small><h1>Paradas</h1></div></div><div class="panel"><table><thead><tr><th>Nombre</th><th>Latitud</th><th>Longitud</th><th>Radio</th><th>Estado</th></tr></thead><tbody id="stopsTable"></tbody></table></div></section>
@@ -53,5 +105,5 @@
 </main></div></div>
 <div class="modal fade" id="routeModal"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><form id="routeForm"><div class="modal-header"><h5 id="routeTitle">Nueva ruta</h5><button class="btn-close" type="button" data-bs-dismiss="modal"></button></div><div class="modal-body"><label>Código</label><input id="routeCode" class="form-control" required><label>Nombre</label><input id="routeName" class="form-control" required><div class="form-check mt-3"><input id="routeActive" class="form-check-input" type="checkbox" checked><label>Activa</label></div></div><div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-primary">Guardar</button></div></form></div></div></div>
 <div class="modal fade" id="smartDriverResolveModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><form onsubmit="smartConfirmDriverResolution(event)"><div class="modal-header"><h5 class="modal-title">Resolver incidente de piloto</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button></div><div class="modal-body"><input type="hidden" id="smartDriverResolveId"><label class="form-label" for="smartDriverResolveText">Solución aplicada</label><textarea id="smartDriverResolveText" class="form-control" rows="4" maxlength="2000" required placeholder="Describe cómo se resolvió el incidente"></textarea><div class="form-text">La solución quedará registrada y será visible para el piloto.</div></div><div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button><button id="smartDriverResolveSubmit" type="submit" class="btn btn-success">Confirmar resolución</button></div></form></div></div></div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script src="js/app.js?v=16"></script>
-<script src="js/crud.js?v=13"></script><script src="js/analytics.js?v=1"></script></body></html>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script src="js/app.js?v=131-fix1"></script>
+<script src="js/crud.js?v=14"></script><script src="js/analytics.js?v=131-fix1"></script><script src="js/operations-1.3.1.js?v=131-fix1"></script></body></html>

@@ -5,6 +5,11 @@ public class AssignmentRequest {
     private Long driverId;
     private Long busId;
     private Long routeId;
+    private com.smartroutegt.backend.entity.DriverRouteAssignment.TipoRecorrido tipoRecorrido;
+
+    public com.smartroutegt.backend.entity.DriverRouteAssignment.TipoRecorrido getTipoRecorrido() { return tipoRecorrido; }
+    public void setTipoRecorrido(com.smartroutegt.backend.entity.DriverRouteAssignment.TipoRecorrido tipoRecorrido) { this.tipoRecorrido = tipoRecorrido; }
+
 
     public AssignmentRequest() {
     }

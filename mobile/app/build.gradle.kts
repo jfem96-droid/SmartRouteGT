@@ -13,9 +13,8 @@ android {
         applicationId = "com.smartroutegt.mobile"
         minSdk = 24
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
-
+        versionCode = 10
+        versionName = "1.3.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -36,6 +35,7 @@ android {
 }
 
 dependencies {
+    implementation("androidx.fragment:fragment:1.9.1")
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)

@@ -1,5 +1,9 @@
 package com.smartroutegt.mobile.ui.screens
 
+import com.smartroutegt.mobile.network.userFacingApiError
+
+import com.smartroutegt.mobile.ui.theme.SmartRoutePalette
+
 import android.Manifest
 import android.content.pm.PackageManager
 import android.location.LocationManager
@@ -28,8 +32,8 @@ import com.smartroutegt.mobile.data.remote.*
 import com.smartroutegt.mobile.network.TripDto
 import kotlinx.coroutines.launch
 
-private val reportBlue = Color(0xFF2457C5)
-private val reportBackground = Color(0xFFF4F7FC)
+private val reportBlue = SmartRoutePalette.Mint
+private val reportBackground = SmartRoutePalette.Night
 
 @Composable
 fun PassengerReportV3Form(onBack: () -> Unit, routeProblem: Boolean) {
@@ -55,7 +59,7 @@ fun PassengerReportV3Form(onBack: () -> Unit, routeProblem: Boolean) {
             boarding = api.myBoarding()
             selectedTrip = boarding?.tripId
         } catch (e: Exception) {
-            status = "No se pudieron cargar los viajes: ${e.message}"
+            status = "No se pudieron cargar los viajes: ${userFacingApiError(e)}"
         } finally { loading = false }
     }
     LaunchedEffect(selectedTrip, permission) {
@@ -90,7 +94,7 @@ fun PassengerReportV3Form(onBack: () -> Unit, routeProblem: Boolean) {
     Column(Modifier.fillMaxSize().background(reportBackground).verticalScroll(rememberScrollState())) {
         PassengerV3TopBar(if (routeProblem) "Problema de ruta" else "Reportar piloto", "Seguridad del pasajero", onBack)
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Card(colors = CardDefaults.cardColors(containerColor = reportBlue), shape = RoundedCornerShape(20.dp)) {
+            Card(colors = CardDefaults.cardColors(containerColor = SmartRoutePalette.Navy, contentColor = SmartRoutePalette.Text), shape = RoundedCornerShape(20.dp), border = BorderStroke(1.dp, SmartRoutePalette.Border)) {
                 Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Tu seguridad es importante", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Text("Cuéntanos qué ocurrió. Tu reporte será revisado por el equipo de SmartRoute GT.", color = Color.White.copy(alpha = 0.9f), style = MaterialTheme.typography.bodyMedium)
@@ -99,12 +103,12 @@ fun PassengerReportV3Form(onBack: () -> Unit, routeProblem: Boolean) {
             ReportSection("01  Viaje relacionado") {
                 if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
                 else if (boarding?.tripId != null) {
-                    Text("Bus ${boarding?.bus ?: ""}", fontWeight = FontWeight.Bold)
-                    Text("${boarding?.route ?: ""} · Viaje #${boarding?.tripId ?: ""}")
+                    Text("Bus ${boarding?.bus ?: ""}", fontWeight = FontWeight.Bold, color = SmartRoutePalette.Text)
+                    Text("${boarding?.route ?: ""} · Viaje #${boarding?.tripId ?: ""}", color = SmartRoutePalette.Muted)
                     Text(if (boarding?.separatedAt.isNullOrBlank()) "Abordaje confirmado · GPS obligatorio" else "Separación detectada · 5 minutos para reportar", color = reportBlue)
-                    OutlinedButton(onClick = { scope.launch { try { boarding = api.myBoarding(); selectedTrip = boarding?.tripId } catch (e: Exception) { status = e.message ?: "Error" } } }) { Text("Actualizar estado") }
+                    OutlinedButton(onClick = { scope.launch { try { boarding = api.myBoarding(); selectedTrip = boarding?.tripId } catch (e: Exception) { status = userFacingApiError(e) } } }) { Text("Actualizar estado") }
                 } else {
-                    Text("Busca buses cercanos con GPS y confirma en cuál estás viajando.")
+                    Text("Busca buses cercanos con GPS y confirma en cuál estás viajando.", color = SmartRoutePalette.Text)
                     Button(enabled = !searching && permission, onClick = {
                         searching = true; status = "Buscando buses a menos de 40 m..."
                         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) { searching=false;status="Autoriza ubicación precisa" }
@@ -113,14 +117,14 @@ fun PassengerReportV3Form(onBack: () -> Unit, routeProblem: Boolean) {
                             else scope.launch { try {
                                 nearbyBuses = api.nearbyBuses(BoardingPosition(loc.latitude,loc.longitude))
                                 status = if (nearbyBuses.isEmpty()) "No hay buses activos cercanos con GPS actualizado" else "Selecciona el bus en el que estás"
-                            } catch(e:Exception){status=e.message?:"Error de red"} finally{searching=false} }
+                            } catch(e:Exception){status=userFacingApiError(e)} finally{searching=false} }
                         }.addOnFailureListener {searching=false;status="Error GPS: ${it.message}"}
                     }) { Text(if(searching) "Buscando..." else "Detectar buses cercanos") }
                     nearbyBuses.forEach { bus ->
-                        Card(colors=CardDefaults.cardColors(containerColor=Color(0xFFEAF1FF))) {
+                        Card(colors=CardDefaults.cardColors(containerColor=SmartRoutePalette.Navy, contentColor=SmartRoutePalette.Text), border=BorderStroke(1.dp,SmartRoutePalette.Border)) {
                             Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement=Arrangement.spacedBy(6.dp)) {
                                 Text("Bus ${bus.bus} · ${bus.route}",fontWeight=FontWeight.Bold)
-                                Text("Aproximadamente ${bus.distanceMeters} m")
+                                Text("Aproximadamente ${bus.distanceMeters} m", color = SmartRoutePalette.Muted)
                                 Button(enabled=!joining && permission,onClick={
                                     joining=true;status="Verificando proximidad..."
                                     if(ContextCompat.checkSelfPermission(context,Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED){joining=false;status="Autoriza ubicación precisa"}
@@ -130,7 +134,7 @@ fun PassengerReportV3Form(onBack: () -> Unit, routeProblem: Boolean) {
                                             val response=api.joinNearby(NearbyJoin(bus.tripId,loc.latitude,loc.longitude))
                                             if(response.isSuccessful){boarding=response.body();selectedTrip=boarding?.tripId;nearbyBuses=emptyList();status="Abordaje confirmado"}
                                             else status="Abordaje rechazado HTTP ${response.code()}: ${response.errorBody()?.string()?.take(180)}"
-                                        }catch(e:Exception){status=e.message?:"Error de red"}finally{joining=false}}
+                                        }catch(e:Exception){status=userFacingApiError(e)}finally{joining=false}}
                                     }.addOnFailureListener {joining=false;status="Error GPS: ${it.message}"}
                                 }){Text("Estoy a bordo de este bus")}
                             }
@@ -144,12 +148,13 @@ fun PassengerReportV3Form(onBack: () -> Unit, routeProblem: Boolean) {
                     Surface(
                         modifier = Modifier.fillMaxWidth().clickable { type = code },
                         shape = RoundedCornerShape(12.dp),
-                        color = if (selected) Color(0xFFEAF1FF) else Color.White,
-                        border = BorderStroke(1.dp, if (selected) reportBlue else Color(0xFFE0E6EF))
+                        color = if (selected) SmartRoutePalette.Panel else SmartRoutePalette.Navy,
+                        border = BorderStroke(1.dp, if (selected) reportBlue else SmartRoutePalette.Border),
+                        contentColor = SmartRoutePalette.Text
                     ) {
                         Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                             RadioButton(selected, onClick = { type = code })
-                            Text(label, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
+                            Text(label, color = SmartRoutePalette.Text, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
                         }
                     }
                 }
@@ -163,9 +168,9 @@ fun PassengerReportV3Form(onBack: () -> Unit, routeProblem: Boolean) {
                 )
             }
             ReportSection("04  Ubicación obligatoria") {
-                Text(if (permission && gpsEnabled) "Permiso de ubicación concedido" else "Activa el GPS y permite el acceso a tu ubicación.", color = if (permission && gpsEnabled) Color(0xFF167447) else MaterialTheme.colorScheme.error)
+                Text(if (permission && gpsEnabled) "Permiso de ubicación concedido" else "Activa el GPS y permite el acceso a tu ubicación.", color = if (permission && gpsEnabled) SmartRoutePalette.Mint else MaterialTheme.colorScheme.error)
                 if (!permission) OutlinedButton(onClick = { requestPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION) }) { Text("Permitir ubicación GPS") }
-                Text("La ubicación será comprobada al enviar. La validación de abordaje y separación debe realizarla el backend.", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                Text("La ubicación será comprobada al enviar. La validación de abordaje y separación debe realizarla el backend.", style = MaterialTheme.typography.bodySmall, color = SmartRoutePalette.Muted)
             }
             Button(
                 enabled = !sending && permission && gpsEnabled && selectedTrip != null && description.trim().length >= 10,
@@ -193,7 +198,7 @@ fun PassengerReportV3Form(onBack: () -> Unit, routeProblem: Boolean) {
                                     val result = api.report(PassengerReportPayload(type, description.trim(), tripId, loc.latitude, loc.longitude))
                                     if (result.isSuccessful) { status = "Reporte enviado correctamente"; description = "" }
                                     else status = "El servidor rechazó el reporte (HTTP ${result.code()}): ${result.errorBody()?.string()?.take(250) ?: ""}"
-                                } catch (e: Exception) { status = "No se pudo enviar: ${e.message}" }
+                                } catch (e: Exception) { status = "No se pudo enviar: ${userFacingApiError(e)}" }
                                 finally { sending = false }
                             }
                         }.addOnFailureListener { sending = false; status = "No se pudo obtener GPS: ${it.message}" }
@@ -201,14 +206,14 @@ fun PassengerReportV3Form(onBack: () -> Unit, routeProblem: Boolean) {
                 },
                 modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(14.dp)
             ) { Text(if (sending) "Enviando..." else "Enviar reporte", fontWeight = FontWeight.Bold) }
-            if (status.isNotBlank()) Text(status, color = if (status.startsWith("Reporte enviado")) Color(0xFF167447) else MaterialTheme.colorScheme.onSurface)
+            if (status.isNotBlank()) Text(status, color = if (status.startsWith("Reporte enviado")) SmartRoutePalette.Mint else MaterialTheme.colorScheme.onSurface)
         }
     }
 }
 
 @Composable
 private fun ReportSection(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
+    Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = SmartRoutePalette.Panel, contentColor = SmartRoutePalette.Text), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
             content()

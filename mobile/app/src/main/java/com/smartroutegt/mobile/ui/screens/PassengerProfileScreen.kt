@@ -1,5 +1,7 @@
 package com.smartroutegt.mobile.ui.screens
 
+import com.smartroutegt.mobile.ui.theme.SmartRoutePalette
+
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -29,7 +31,7 @@ fun PassengerProfileScreen(onBack:()->Unit,onLogout:()->Unit) {
  var busy by remember { mutableStateOf(false) }
  var logout by remember { mutableStateOf(false) }
  LaunchedEffect(Unit) { try { val data=api.get();nombre=data.nombre;correo=data.email;telefono=data.telefono.orEmpty() } catch(e:Exception) {status="No se pudo cargar el perfil: ${e.message}"} }
- Column(Modifier.fillMaxSize().background(Color(0xFFF4F7FB))) {
+ Column(Modifier.fillMaxSize().background(SmartRoutePalette.Night)) {
   PassengerV3TopBar("Mi perfil","Datos personales y seguridad",onBack)
   Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
    PassengerV3SectionCard {

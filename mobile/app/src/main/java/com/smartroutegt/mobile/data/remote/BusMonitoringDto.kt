@@ -15,5 +15,7 @@ data class BusMonitoringDto(
     val latitud: Double?,
     val longitud: Double?,
     val velocidad: Double?,
-    val ultimaActualizacion: String?
+    val ultimaActualizacion: String?,
+    val direction: String? = null,
+    val tipoRecorrido: String? = null
 )

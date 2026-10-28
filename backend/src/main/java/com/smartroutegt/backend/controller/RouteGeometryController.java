@@ -1,6 +1,7 @@
 package com.smartroutegt.backend.controller;
 
 import com.smartroutegt.backend.dto.routing.RouteGeometryResponse;
+import com.smartroutegt.backend.entity.Trip;
 import com.smartroutegt.backend.service.RouteGeometryService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,13 +26,15 @@ public class RouteGeometryController {
     public ResponseEntity<RouteGeometryResponse> getGeometry(
             @PathVariable Long routeId,
             @RequestParam(required = false) Long originStopId,
-            @RequestParam(required = false) Long destinationStopId) {
+            @RequestParam(required = false) Long destinationStopId,
+            @RequestParam(required = false) Trip.Sentido direction) {
 
         return ResponseEntity.ok(
                 routeGeometryService.getRouteGeometry(
                         routeId,
                         originStopId,
-                        destinationStopId
+                        destinationStopId,
+                        direction
                 )
         );
     }

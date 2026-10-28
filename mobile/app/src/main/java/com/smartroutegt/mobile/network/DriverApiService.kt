@@ -73,6 +73,10 @@ class DriverApiService(
         return api.finishTrip(tripId)
     }
 
+    suspend fun getDispatchStatus(driverId: Long): DispatchStatusDto = api.getDispatchStatus(driverId)
+    suspend fun getDispatchTripState(tripId: Long): DispatchTripStateDto = api.getDispatchTripState(tripId)
+    suspend fun nextLeg(tripId: Long): TripDto = api.nextLeg(tripId)
+
     suspend fun registerLocation(
         tripId: Long,
         latitud: Double,
@@ -97,9 +101,10 @@ class DriverApiService(
     }
 
     suspend fun getRouteStops(
-        routeId: Long
+        routeId: Long,
+        direction: String? = null
     ): List<RouteStopDto> {
-        return api.getRouteStops(routeId)
+        return api.getRouteStops(routeId, direction)
     }
 
     suspend fun getNextStop(

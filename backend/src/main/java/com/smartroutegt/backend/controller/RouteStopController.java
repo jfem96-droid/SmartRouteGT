@@ -16,9 +16,14 @@ import org.springframework.web.bind.annotation.RestController;
 import com.smartroutegt.backend.entity.Route;
 import com.smartroutegt.backend.entity.RouteStop;
 import com.smartroutegt.backend.entity.Stop;
+import com.smartroutegt.backend.entity.Trip;
+import com.smartroutegt.backend.service.RouteItineraryService;
 import com.smartroutegt.backend.repository.RouteRepository;
 import com.smartroutegt.backend.repository.RouteStopRepository;
 import com.smartroutegt.backend.repository.StopRepository;
+import com.smartroutegt.backend.repository.TripRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/route-stops")
@@ -27,15 +32,20 @@ public class RouteStopController {
     private final RouteStopRepository routeStopRepository;
     private final RouteRepository routeRepository;
     private final StopRepository stopRepository;
+    private final TripRepository trips;
+    private final RouteItineraryService itineraries;
 
     public RouteStopController(
             RouteStopRepository routeStopRepository,
             RouteRepository routeRepository,
-            StopRepository stopRepository) {
+            StopRepository stopRepository,
+            TripRepository trips, RouteItineraryService itineraries) {
 
         this.routeStopRepository = routeStopRepository;
         this.routeRepository = routeRepository;
         this.stopRepository = stopRepository;
+        this.trips = trips;
+        this.itineraries = itineraries;
     }
 
     @GetMapping
@@ -62,6 +72,7 @@ public class RouteStopController {
                     .body("La parada no existe");
         }
 
+        assertNoActiveTrip(routeId);
         if (orden <= 0) {
             return ResponseEntity.badRequest()
                     .body("El orden debe ser mayor que cero");
@@ -86,8 +97,14 @@ public class RouteStopController {
 
     @GetMapping("/route")
     public List<RouteStop> obtenerParadasPorRuta(
-            @RequestParam Long routeId) {
-
+            @RequestParam Long routeId,
+            @RequestParam(required = false) Trip.Sentido direction) {
+        if (direction == Trip.Sentido.VUELTA) {
+            Route route = routeRepository.findById(routeId).orElseThrow();
+            int[] orden = {0};
+            return itineraries.stops(routeId, Trip.Sentido.VUELTA).stream()
+                .map(stop -> new RouteStop(route, stop, ++orden[0])).toList();
+        }
         return routeStopRepository
                 .findByRouteIdOrderByOrdenAsc(routeId);
     }
@@ -96,6 +113,7 @@ public class RouteStopController {
     public ResponseEntity<?> quitarParadaDeRuta(@PathVariable Long id) {
         RouteStop routeStop = routeStopRepository.findById(id).orElse(null);
         if (routeStop == null) return ResponseEntity.notFound().build();
+        assertNoActiveTrip(routeStop.getRoute().getId());
         routeStopRepository.delete(routeStop);
         return ResponseEntity.ok("Parada quitada de la ruta");
     }
@@ -162,6 +180,7 @@ public class RouteStopController {
                     .body("Una parada de alta demanda no puede superar 120 segundos");
         }
 
+        assertNoActiveTrip(routeStop.getRoute().getId());
         routeStop.setTipoParada(request.getTipoParada());
         routeStop.setTiempoMinimoSegundos(minimo);
         routeStop.setTiempoObjetivoSegundos(objetivo);
@@ -169,6 +188,12 @@ public class RouteStopController {
 
         return ResponseEntity.ok(
                 routeStopRepository.save(routeStop));
+    }
+
+    private void assertNoActiveTrip(Long routeId) {
+        if (trips.findByActivoTrue().stream().anyMatch(t -> t.getRoute().getId().equals(routeId))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La ruta tiene viajes activos; espere antes de modificar sus paradas");
+        }
     }
 
     public static class ConfiguracionParadaRequest {

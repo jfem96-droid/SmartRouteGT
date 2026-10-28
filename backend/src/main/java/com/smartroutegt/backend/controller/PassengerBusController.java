@@ -84,6 +84,8 @@ public class PassengerBusController {
 
                 item.put("tripId", trip.getId());
                 item.put("viajeActivo", true);
+                item.put("direction", trip.getSentidoActual().name());
+                item.put("tipoRecorrido", trip.getTipoRecorrido().name());
 
                 item.put("routeId", trip.getRoute().getId());
                 item.put("ruta", trip.getRoute().getNombre());
@@ -92,6 +94,8 @@ public class PassengerBusController {
 
                 item.put("tripId", null);
                 item.put("viajeActivo", false);
+                item.put("direction", null);
+                item.put("tipoRecorrido", null);
             }
 
             BusLocation location = locationRepository

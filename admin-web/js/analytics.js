@@ -8,7 +8,7 @@
  };
  const escapeText=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const statusText={PENDING:'Pendiente',UNDER_REVIEW:'En revisión',REVIEWED:'Revisada',RESOLVED:'Resuelta',REJECTED:'Rechazada',CONFIRMED:'Confirmada',CANCELLED:'Cancelada'};
- const dayOf=x=>{const raw=x.createdAt||x.fechaHora||x.fecha||x.timestamp; if(!raw)return null;const d=new Date(raw);return Number.isFinite(d.getTime())?d:null};
+ const dayOf=x=>{const raw=x.createdAt||x.fechaHora||x.fecha||x.timestamp; if(!raw)return null;const d=window.smartParseDate?window.smartParseDate(raw):new Date(raw);return d&&Number.isFinite(d.getTime())?d:null};
  const allRows=(m)=>configs[m].tables.flatMap(id=>[...document.querySelectorAll('#'+id+' tr')]);
  function kpi(label,value,icon,tone=''){return `<div class="sr-kpi ${tone}"><div class="sr-kpi-icon"><i class="bi ${icon}"></i></div><div><span>${escapeText(label)}</span><strong>${escapeText(value)}</strong></div></div>`}
  function charts(module,items){

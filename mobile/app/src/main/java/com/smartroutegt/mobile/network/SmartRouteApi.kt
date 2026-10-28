@@ -41,6 +41,15 @@ interface SmartRouteApi {
         @Path("id") tripId: Long
     ): TripDto
 
+    @GET("api/dispatch/driver/{driverId}")
+    suspend fun getDispatchStatus(@Path("driverId") driverId: Long): DispatchStatusDto
+
+    @GET("api/dispatch/trip/{tripId}")
+    suspend fun getDispatchTripState(@Path("tripId") tripId: Long): DispatchTripStateDto
+
+    @PUT("api/trips/{id}/next-leg")
+    suspend fun nextLeg(@Path("id") tripId: Long): TripDto
+
     @POST("api/locations")
     suspend fun registerLocation(
         @Query("tripId") tripId: Long,
@@ -56,7 +65,8 @@ interface SmartRouteApi {
 
     @GET("api/route-stops/route")
     suspend fun getRouteStops(
-        @Query("routeId") routeId: Long
+        @Query("routeId") routeId: Long,
+        @Query("direction") direction: String? = null
     ): List<RouteStopDto>
 
     @GET("api/trips/{tripId}/next-stop")

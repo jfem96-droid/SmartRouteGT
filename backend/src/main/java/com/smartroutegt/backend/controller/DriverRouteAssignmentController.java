@@ -20,6 +20,8 @@ import com.smartroutegt.backend.repository.DriverRepository;
 import com.smartroutegt.backend.repository.DriverRouteAssignmentRepository;
 import com.smartroutegt.backend.repository.RouteRepository;
 import com.smartroutegt.backend.service.ResourceAuthorizationService;
+import com.smartroutegt.backend.service.RouteItineraryService;
+import com.smartroutegt.backend.repository.TripRepository;
 
 @RestController
 @RequestMapping("/api/assignments")
@@ -30,19 +32,25 @@ public class DriverRouteAssignmentController {
     private final BusRepository busRepository;
     private final RouteRepository routeRepository;
     private final ResourceAuthorizationService authorizationService;
+    private final RouteItineraryService itineraryService;
+    private final TripRepository tripRepository;
 
     public DriverRouteAssignmentController(
             DriverRouteAssignmentRepository driverRouteAssignmentRepository,
             DriverRepository driverRepository,
             BusRepository busRepository,
             RouteRepository routeRepository,
-            ResourceAuthorizationService authorizationService) {
+            ResourceAuthorizationService authorizationService,
+            RouteItineraryService itineraryService,
+            TripRepository tripRepository) {
 
         this.driverRouteAssignmentRepository = driverRouteAssignmentRepository;
         this.driverRepository = driverRepository;
         this.busRepository = busRepository;
         this.routeRepository = routeRepository;
         this.authorizationService = authorizationService;
+        this.itineraryService = itineraryService;
+        this.tripRepository = tripRepository;
     }
 
     @GetMapping
@@ -106,6 +114,16 @@ public class DriverRouteAssignmentController {
                     .body("La ruta está inactiva");
         }
 
+        var tipo = request.getTipoRecorrido() == null ?
+            DriverRouteAssignment.TipoRecorrido.SOLO_IDA : request.getTipoRecorrido();
+        if (tipo != DriverRouteAssignment.TipoRecorrido.SOLO_IDA && !itineraryService.hasReturnStops(route.getId())) {
+            return ResponseEntity.badRequest().body("Primero configure las paradas de vuelta de la ruta");
+        }
+        if (tripRepository.existsByDriverIdAndActivoTrue(driver.getId()) ||
+            tripRepository.findByBusIdAndActivoTrue(bus.getId()).isPresent()) {
+            return ResponseEntity.status(409).body("No se puede cambiar una asignación mientras el piloto o el bus tiene un viaje activo");
+        }
+
         // Un bus no puede estar asignado activamente a otro piloto.
         List<DriverRouteAssignment> busAssignments =
                 driverRouteAssignmentRepository.findByBusIdAndActivaTrue(bus.getId());
@@ -132,6 +150,7 @@ public class DriverRouteAssignmentController {
         }
 
         DriverRouteAssignment assignment = new DriverRouteAssignment(driver, bus, route);
+        assignment.setTipoRecorrido(tipo);
 
         return ResponseEntity.ok(
                 driverRouteAssignmentRepository.save(assignment));
@@ -154,6 +173,9 @@ public class DriverRouteAssignmentController {
                     .body("La asignación ya está inactiva");
         }
 
+        if (tripRepository.findByDriverIdAndActivoTrue(assignment.getDriver().getId()).isPresent()) {
+            return ResponseEntity.status(409).body("Finalice el viaje activo antes de desasignar");
+        }
         assignment.setActiva(false);
         driverRouteAssignmentRepository.save(assignment);
 

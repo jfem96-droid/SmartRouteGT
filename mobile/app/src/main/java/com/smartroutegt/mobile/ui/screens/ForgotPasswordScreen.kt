@@ -33,6 +33,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.smartroutegt.mobile.auth.AuthRepository
+import com.smartroutegt.mobile.ui.theme.SmartRoutePalette
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 
@@ -57,9 +58,9 @@ fun ForgotPasswordScreen(
     val scope = rememberCoroutineScope()
     val repository = remember { AuthRepository() }
 
-    val smartBlue = Color(0xFF2563EB)
-    val background = Color(0xFFF4F7FB)
-    val darkText = Color(0xFF172033)
+    val smartBlue = SmartRoutePalette.Mint
+    val background = SmartRoutePalette.Night
+    val darkText = SmartRoutePalette.Text
 
     fun httpMessage(e: HttpException): String {
         return try {
@@ -139,7 +140,8 @@ fun ForgotPasswordScreen(
                 ),
                 singleLine = true,
                 enabled = !loading,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = smartAuthTextFieldColors()
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -200,7 +202,8 @@ fun ForgotPasswordScreen(
                 ),
                 singleLine = true,
                 enabled = !loading,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = smartAuthTextFieldColors()
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -220,7 +223,8 @@ fun ForgotPasswordScreen(
                     },
                 singleLine = true,
                 enabled = !loading,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = smartAuthTextFieldColors()
             )
 
             TextButton(
@@ -254,7 +258,8 @@ fun ForgotPasswordScreen(
                     },
                 singleLine = true,
                 enabled = !loading,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = smartAuthTextFieldColors()
             )
 
             Spacer(modifier = Modifier.height(20.dp))

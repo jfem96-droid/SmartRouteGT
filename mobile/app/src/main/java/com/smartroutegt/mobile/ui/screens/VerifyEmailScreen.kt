@@ -1,5 +1,6 @@
 package com.smartroutegt.mobile.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -24,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.smartroutegt.mobile.auth.AuthRepository
+import com.smartroutegt.mobile.ui.theme.SmartRoutePalette
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 
@@ -45,6 +47,7 @@ fun VerifyEmailScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(SmartRoutePalette.Night)
             .padding(horizontal = 24.dp, vertical = 28.dp),
         verticalArrangement = Arrangement.Center
     ) {
@@ -93,7 +96,8 @@ fun VerifyEmailScreen(
                 keyboardType = KeyboardType.Number
             ),
             singleLine = true,
-            enabled = !loading && !resending
+            enabled = !loading && !resending,
+            colors = smartAuthTextFieldColors()
         )
 
         message?.let {

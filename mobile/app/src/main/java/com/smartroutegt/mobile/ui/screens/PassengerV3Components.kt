@@ -1,5 +1,7 @@
 package com.smartroutegt.mobile.ui.screens
 
+import com.smartroutegt.mobile.ui.theme.SmartRoutePalette
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,7 +35,7 @@ fun PassengerV3TopBar(
     subtitle: String,
     onBack: (() -> Unit)? = null
 ) {
-    Surface(color = Color.White, shadowElevation = 3.dp) {
+    Surface(color = SmartRoutePalette.Panel, shadowElevation = 3.dp) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -45,11 +47,11 @@ fun PassengerV3TopBar(
                     modifier = Modifier
                         .size(42.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFF0F4FA))
+                        .background(SmartRoutePalette.Navy)
                         .clickable(onClick = onBack),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("‹", fontSize = 30.sp, color = Color(0xFF1D2A3D))
+                    Text("‹", fontSize = 30.sp, color = SmartRoutePalette.Text)
                 }
 
                 Spacer(modifier = Modifier.size(12.dp))
@@ -64,7 +66,7 @@ fun PassengerV3TopBar(
             ) {
                 Text(
                     "SR",
-                    color = Color.White,
+                    color = SmartRoutePalette.Night,
                     fontWeight = FontWeight.ExtraBold
                 )
             }
@@ -78,13 +80,13 @@ fun PassengerV3TopBar(
                     title,
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
-                    color = Color(0xFF172033)
+                    color = SmartRoutePalette.Text
                 )
 
                 Text(
                     subtitle,
                     fontSize = 11.sp,
-                    color = Color(0xFF7D899D)
+                    color = SmartRoutePalette.Muted
                 )
             }
         }
@@ -99,7 +101,7 @@ fun PassengerV3SectionCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = SmartRoutePalette.Panel, contentColor = SmartRoutePalette.Text),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -121,8 +123,8 @@ fun PassengerV3Choice(
             .fillMaxWidth()
             .clip(RoundedCornerShape(15.dp))
             .background(
-                if (selected) Color(0xFFEAF2FF)
-                else Color(0xFFF4F6F9)
+                if (selected) SmartRoutePalette.Panel
+                else SmartRoutePalette.Navy
             )
             .clickable(onClick = onClick)
             .padding(horizontal = 13.dp, vertical = 12.dp),
@@ -144,14 +146,14 @@ fun PassengerV3Choice(
                 title,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
-                color = Color(0xFF263247)
+                color = SmartRoutePalette.Text
             )
 
             if (!subtitle.isNullOrBlank()) {
                 Text(
                     subtitle,
                     fontSize = 11.sp,
-                    color = Color(0xFF8992A5)
+                    color = SmartRoutePalette.Muted
                 )
             }
         }
@@ -180,8 +182,8 @@ fun PassengerV3BusCard(
         shape = RoundedCornerShape(17.dp),
         colors = CardDefaults.cardColors(
             containerColor =
-                if (selected) Color(0xFFEAF2FF)
-                else Color.White
+                if (selected) SmartRoutePalette.Panel
+                else SmartRoutePalette.Panel
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = if (selected) 4.dp else 1.dp
@@ -200,7 +202,7 @@ fun PassengerV3BusCard(
             ) {
                 Text(
                     "BUS",
-                    color = Color.White,
+                    color = SmartRoutePalette.Night,
                     fontSize = 9.sp,
                     fontWeight = FontWeight.ExtraBold
                 )
@@ -214,13 +216,13 @@ fun PassengerV3BusCard(
                 Text(
                     code,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF172033)
+                    color = SmartRoutePalette.Text
                 )
 
                 Text(
                     "Placa $plate",
                     fontSize = 12.sp,
-                    color = Color(0xFF7D899D)
+                    color = SmartRoutePalette.Muted
                 )
             }
 
@@ -249,7 +251,7 @@ fun PassengerV3EtaCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF173C7A)
+            containerColor = SmartRoutePalette.Panel
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
     ) {

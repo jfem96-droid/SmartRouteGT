@@ -25,6 +25,7 @@ import com.smartroutegt.backend.repository.TripRepository;
 import com.smartroutegt.backend.repository.ViolationRepository;
 import com.smartroutegt.backend.service.ResourceAuthorizationService;
 import com.smartroutegt.backend.service.StopVisitService;
+import com.smartroutegt.backend.service.RouteItineraryService;
 
 @RestController
 @RequestMapping("/api/locations")
@@ -40,6 +41,7 @@ public class BusLocationController {
         private final StopVisitRepository stopVisitRepository;
         private final StopVisitService stopVisitService;
         private final ResourceAuthorizationService authorizationService;
+        private final RouteItineraryService itineraryService;
 
         public BusLocationController(
                         BusLocationRepository locationRepository,
@@ -48,7 +50,8 @@ public class BusLocationController {
                         RouteStopRepository routeStopRepository,
                         StopVisitRepository stopVisitRepository,
                         StopVisitService stopVisitService,
-                        ResourceAuthorizationService authorizationService) {
+                        ResourceAuthorizationService authorizationService,
+                        RouteItineraryService itineraryService) {
 
                 this.locationRepository = locationRepository;
                 this.tripRepository = tripRepository;
@@ -57,6 +60,7 @@ public class BusLocationController {
                 this.stopVisitRepository = stopVisitRepository;
                 this.stopVisitService = stopVisitService;
                 this.authorizationService = authorizationService;
+                this.itineraryService = itineraryService;
         }
 
         @PostMapping
@@ -132,8 +136,12 @@ public class BusLocationController {
                         BusLocation locationActual) {
 
                 List<RouteStop> paradasRuta = routeStopRepository
-                                .findByRouteIdOrderByOrdenAsc(
-                                                trip.getRoute().getId());
+                                .findByRouteIdOrderByOrdenAsc(trip.getRoute().getId());
+                if (trip.getSentidoActual() == Trip.Sentido.VUELTA) {
+                        int[] order = {0};
+                        paradasRuta = itineraryService.stops(trip.getRoute().getId(), Trip.Sentido.VUELTA)
+                                .stream().map(stop -> new RouteStop(trip.getRoute(), stop, ++order[0])).toList();
+                }
 
                 for (RouteStop routeStop : paradasRuta) {
 

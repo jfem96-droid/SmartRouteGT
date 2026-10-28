@@ -25,6 +25,14 @@ import com.smartroutegt.backend.repository.StopVisitRepository;
 import com.smartroutegt.backend.repository.TripRepository;
 import com.smartroutegt.backend.service.ResourceAuthorizationService;
 import com.smartroutegt.backend.service.StopVisitService;
+import com.smartroutegt.backend.service.RouteItineraryService;
+import com.smartroutegt.backend.entity.DriverRouteAssignment.TipoRecorrido;
+import com.smartroutegt.backend.entity.Trip.Sentido;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.RequestBody;
+import com.smartroutegt.backend.entity.TripAdministrativeClosure;
+import com.smartroutegt.backend.repository.TripAdministrativeClosureRepository;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @RestController
 @RequestMapping("/api/trips")
@@ -37,6 +45,8 @@ public class TripController {
         private final BusLocationRepository locationRepository;
         private final StopVisitService stopVisitService;
         private final ResourceAuthorizationService authorizationService;
+        private final RouteItineraryService itineraryService;
+        private final TripAdministrativeClosureRepository closureRepository;
 
         public TripController(
                         TripRepository tripRepository,
@@ -45,7 +55,8 @@ public class TripController {
                         StopVisitRepository stopVisitRepository,
                         BusLocationRepository locationRepository,
                         StopVisitService stopVisitService,
-                        ResourceAuthorizationService authorizationService) {
+                        ResourceAuthorizationService authorizationService,
+                        RouteItineraryService itineraryService, TripAdministrativeClosureRepository closureRepository) {
 
                 this.tripRepository = tripRepository;
                 this.assignmentRepository = assignmentRepository;
@@ -54,8 +65,11 @@ public class TripController {
                 this.locationRepository = locationRepository;
                 this.stopVisitService = stopVisitService;
                 this.authorizationService = authorizationService;
+                this.itineraryService = itineraryService;
+                this.closureRepository = closureRepository;
         }
 
+        @Transactional
         @PostMapping("/start")
         public ResponseEntity<?> iniciarViaje(@RequestParam Long assignmentId) {
 
@@ -99,11 +113,21 @@ public class TripController {
                                         .body("El piloto ya tiene un viaje activo");
                 }
 
+                TipoRecorrido tipo = assignment.getTipoRecorrido();
+                Sentido sentido = tipo == TipoRecorrido.SOLO_VUELTA ? Sentido.VUELTA : Sentido.IDA;
+                if (itineraryService.stops(assignment.getRoute().getId(), sentido).size() < 2) {
+                        return ResponseEntity.badRequest().body("El recorrido autorizado no tiene paradas configuradas");
+                }
+                if (tripRepository.findByBusIdAndActivoTrue(assignment.getBus().getId()).isPresent()) {
+                        return ResponseEntity.status(409).body("El bus ya tiene un viaje activo");
+                }
                 Trip trip = new Trip(
                                 assignment.getDriver(),
                                 assignment.getBus(),
                                 assignment.getRoute());
 
+                trip.setTipoRecorrido(tipo);
+                trip.setSentidoActual(sentido);
                 trip.setFechaInicio(LocalDateTime.now());
                 trip.setActivo(true);
 
@@ -112,6 +136,27 @@ public class TripController {
                 return ResponseEntity.ok(viajeGuardado);
         }
 
+        @Transactional
+        @PutMapping("/{id}/next-leg")
+        public ResponseEntity<?> comenzarVuelta(@PathVariable Long id) {
+                Trip ida = tripRepository.findById(id).orElse(null);
+                if (ida == null) return ResponseEntity.notFound().build();
+                if (!authorizationService.canAccessDriver(ida.getDriver().getId())) return ResponseEntity.status(403).build();
+                if (!ida.isActivo() || ida.getTipoRecorrido() != TipoRecorrido.IDA_Y_VUELTA || ida.getSentidoActual() != Sentido.IDA) {
+                        return ResponseEntity.status(409).body("Esta etapa de vuelta no fue asignada por el administrador");
+                }
+                if (!itineraryService.hasReturnStops(ida.getRoute().getId())) {
+                        return ResponseEntity.status(409).body("El recorrido de vuelta no está configurado");
+                }
+                ida.setFechaFin(LocalDateTime.now()); ida.setActivo(false);
+                tripRepository.saveAndFlush(ida);
+                Trip vuelta = new Trip(ida.getDriver(), ida.getBus(), ida.getRoute());
+                vuelta.setTipoRecorrido(TipoRecorrido.IDA_Y_VUELTA);
+                vuelta.setSentidoActual(Sentido.VUELTA);
+                return ResponseEntity.ok(tripRepository.save(vuelta));
+        }
+
+        @Transactional
         @PutMapping("/{id}/finish")
         public ResponseEntity<?> finalizarViaje(@PathVariable Long id) {
 
@@ -133,12 +178,40 @@ public class TripController {
                                         .body("El viaje ya está finalizado");
                 }
 
+                if (trip.getTipoRecorrido() == TipoRecorrido.IDA_Y_VUELTA && trip.getSentidoActual() == Sentido.IDA) {
+                        return ResponseEntity.status(409).body("El administrador asignó ida y vuelta; complete la vuelta autorizada");
+                }
                 trip.setFechaFin(LocalDateTime.now());
                 trip.setActivo(false);
 
                 Trip viajeFinalizado = tripRepository.save(trip);
 
                 return ResponseEntity.ok(viajeFinalizado);
+        }
+
+        /** Cierre administrativo con motivo obligatorio y registro auditable. Nunca es una baja física. */
+        public record AdminFinishRequest(String reason) {}
+        @Transactional
+        @PutMapping("/{id}/admin-finish")
+        public ResponseEntity<?> adminFinish(@PathVariable Long id, @RequestBody AdminFinishRequest request) {
+                if (request == null || request.reason() == null || request.reason().trim().length() < 15
+                        || request.reason().length() > 1000) {
+                        return ResponseEntity.badRequest().body("Indique un motivo de 15 a 1000 caracteres");
+                }
+                Trip trip = tripRepository.findById(id).orElse(null);
+                if (trip == null) return ResponseEntity.notFound().build();
+                if (!trip.isActivo()) return ResponseEntity.status(409).body("Este viaje ya está cerrado");
+                BusLocation last = locationRepository.findFirstByTripIdOrderByFechaHoraDesc(id).orElse(null);
+                if (last != null && last.getFechaHora() != null &&
+                    last.getFechaHora().isAfter(LocalDateTime.now().minusMinutes(5)) && last.getVelocidad() > 5.0) {
+                    return ResponseEntity.status(409).body("Viaje con GPS reciente en movimiento. No es seguro finalizarlo desde el centro de control.");
+                }
+                String actor = SecurityContextHolder.getContext().getAuthentication().getName();
+                trip.setFechaFin(LocalDateTime.now());
+                trip.setActivo(false);
+                tripRepository.save(trip);
+                closureRepository.save(new TripAdministrativeClosure(id, actor, request.reason().trim()));
+                return ResponseEntity.ok(Map.of("tripId", id, "closed", true));
         }
 
         @GetMapping("/active")
@@ -171,8 +244,12 @@ public class TripController {
                 }
 
                 List<RouteStop> paradasRuta = routeStopRepository
-                                .findByRouteIdOrderByOrdenAsc(
-                                                trip.getRoute().getId());
+                                .findByRouteIdOrderByOrdenAsc(trip.getRoute().getId());
+                if (trip.getSentidoActual() == Sentido.VUELTA) {
+                        int[] order = {0};
+                        paradasRuta = itineraryService.stops(trip.getRoute().getId(), Sentido.VUELTA)
+                                .stream().map(stop -> new RouteStop(trip.getRoute(), stop, ++order[0])).toList();
+                }
 
                 for (RouteStop routeStop : paradasRuta) {
 

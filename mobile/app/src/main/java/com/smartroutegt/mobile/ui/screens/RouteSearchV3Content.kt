@@ -1,5 +1,7 @@
 package com.smartroutegt.mobile.ui.screens
 
+import com.smartroutegt.mobile.ui.theme.SmartRoutePalette
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -38,8 +40,11 @@ fun RouteSearchV3Content(
     selectedOrigin: StopDto?,
     selectedDestination: StopDto?,
     routePath: List<Long>?,
+    selectedDirection: String?,
+    orderedNames: List<String>,
     geometryPoints: List<RouteGeometryPointDto>,
     routeBuses: List<BusMonitoringDto>,
+    mapBuses: List<BusMonitoringDto>,
     selectedBus: BusMonitoringDto?,
     nextStop: NextStopDto?,
     isLoadingRoutes: Boolean,
@@ -63,7 +68,7 @@ fun RouteSearchV3Content(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF4F7FB))
+            .background(SmartRoutePalette.Night)
     ) {
         PassengerV3TopBar(
             title = "Planifica tu viaje",
@@ -79,7 +84,7 @@ fun RouteSearchV3Content(
         ) {
             PassengerV3SectionCard {
                 SectionTitle(
-                    title = "Selecciona una ruta",
+                    title = "Selecciona tu ruta",
                     subtitle = "Elige la ruta que deseas utilizar"
                 )
 
@@ -97,7 +102,7 @@ fun RouteSearchV3Content(
                                 "Toca para seleccionar"
                             },
                             selected = route.id == selectedRoute?.id,
-                            markerColor = Color(0xFF2E7DFF),
+                            markerColor = SmartRoutePalette.Mint,
                             onClick = { onRouteSelected(route) }
                         )
 
@@ -109,12 +114,6 @@ fun RouteSearchV3Content(
             }
 
             if (selectedRoute != null) {
-                Button(onClick = onConfirmSelection, modifier = Modifier.fillMaxWidth()) {
-                    Text("Usar esta ruta en Inicio")
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
                 PassengerV3SectionCard {
                     SectionTitle(
                         title = "Tu recorrido",
@@ -129,7 +128,7 @@ fun RouteSearchV3Content(
                             Text(
                                 text = "Origen",
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF344054)
+                                color = SmartRoutePalette.Text
                             )
 
                             Spacer(modifier = Modifier.height(8.dp))
@@ -145,7 +144,7 @@ fun RouteSearchV3Content(
                                         null
                                     },
                                     selected = routeStop.stop.id == selectedOrigin?.id,
-                                    markerColor = Color(0xFF2E7DFF),
+                                    markerColor = SmartRoutePalette.Mint,
                                     onClick = {
                                         onOriginSelected(routeStop.stop)
                                     }
@@ -161,7 +160,7 @@ fun RouteSearchV3Content(
                             Text(
                                 text = "Destino",
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF344054)
+                                color = SmartRoutePalette.Text
                             )
 
                             Spacer(modifier = Modifier.height(8.dp))
@@ -204,6 +203,7 @@ fun RouteSearchV3Content(
                             routeStops = routeStops,
                             routePath = routePath,
                             geometryPoints = geometryPoints,
+                            activeBuses = mapBuses,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -261,15 +261,12 @@ fun RouteSearchV3Content(
                     PassengerV3SectionCard {
                         SectionTitle(
                             title = "Ruta encontrada",
-                            subtitle = "Recorrido recomendado por SmartRoute"
+                            subtitle = "Sentido autorizado: ${if (selectedDirection == "VUELTA") "Vuelta" else "Ida"}"
                         )
 
-                        val names = routePath.mapNotNull { stopId ->
-                            routeStops
-                                .firstOrNull { it.stop.id == stopId }
-                                ?.stop
-                                ?.nombre
-                        }
+                        val names = orderedNames.ifEmpty { routePath.mapNotNull { stopId ->
+                            routeStops.firstOrNull { it.stop.id == stopId }?.stop?.nombre
+                        } }
 
                         Text(
                             text = if (names.isEmpty()) {
@@ -277,7 +274,7 @@ fun RouteSearchV3Content(
                             } else {
                                 names.joinToString("  →  ")
                             },
-                            color = Color(0xFF344054),
+                            color = SmartRoutePalette.Text,
                             lineHeight = 21.sp
                         )
                     }
@@ -354,6 +351,12 @@ fun RouteSearchV3Content(
                 }
             }
 
+            if (selectedRoute != null) {
+                Spacer(modifier = Modifier.height(14.dp))
+                Button(onClick = onConfirmSelection, modifier = Modifier.fillMaxWidth().height(54.dp)) {
+                    Text("Usar esta ruta", fontWeight = FontWeight.Bold)
+                }
+            }
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
@@ -368,13 +371,13 @@ private fun SectionTitle(
         text = title,
         fontWeight = FontWeight.Bold,
         fontSize = 17.sp,
-        color = Color(0xFF172033)
+        color = SmartRoutePalette.Text
     )
 
     Text(
         text = subtitle,
         fontSize = 12.sp,
-        color = Color(0xFF7D899D),
+        color = SmartRoutePalette.Muted,
         modifier = Modifier.padding(top = 3.dp, bottom = 12.dp)
     )
 }
@@ -393,7 +396,7 @@ private fun LoadingRow(text: String) {
         Text(
             text = text,
             modifier = Modifier.padding(start = 10.dp),
-            color = Color(0xFF667085)
+            color = SmartRoutePalette.Muted
         )
     }
 }
@@ -411,7 +414,7 @@ private fun ErrorText(text: String) {
 private fun EmptyText(text: String) {
     Text(
         text = text,
-        color = Color(0xFF667085),
+        color = SmartRoutePalette.Muted,
         fontSize = 13.sp
     )
 }

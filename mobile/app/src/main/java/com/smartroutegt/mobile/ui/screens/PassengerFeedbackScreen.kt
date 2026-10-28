@@ -2,6 +2,7 @@ package com.smartroutegt.mobile.ui.screens
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -9,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.smartroutegt.mobile.ui.theme.SmartRoutePalette
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -32,22 +34,22 @@ fun PassengerFeedbackScreen(kind:String,onBack:()->Unit){
  var sending by remember{mutableStateOf(false)}
  LaunchedEffect(Unit){try{boarding=api.myBoarding()}catch(e:Exception){status="No se pudo consultar el viaje: ${e.message}"}}
  val compliment=kind=="COMPLIMENT"
- Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())){
+ Column(Modifier.fillMaxSize().background(SmartRoutePalette.Night).verticalScroll(rememberScrollState())){
   PassengerV3TopBar(if(compliment)"Felicitar al piloto" else "Evaluar al piloto","SmartRoute GT",onBack)
   Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
-   Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF193E7B)),shape=RoundedCornerShape(18.dp)){
+   Card(colors=CardDefaults.cardColors(containerColor=SmartRoutePalette.Panel, contentColor=SmartRoutePalette.Text),shape=RoundedCornerShape(18.dp)){
     Column(Modifier.fillMaxWidth().padding(18.dp)){
      Text(if(compliment)"Reconoce un buen servicio" else "Tu opinión mejora el servicio",color=Color.White,style=MaterialTheme.typography.titleLarge)
      Text("${boarding?.bus ?: "Sin abordaje"} · ${boarding?.route ?: ""}",color=Color.White)
     }
    }
    if(compliment){
-    Text("Motivo de la felicitación",style=MaterialTheme.typography.titleMedium)
+    Text("Motivo de la felicitación",style=MaterialTheme.typography.titleMedium,color=SmartRoutePalette.Text)
     listOf("Amabilidad","Conducción segura","Puntualidad","Excelente atención","Otro").forEach { label ->
-     Row(Modifier.fillMaxWidth(),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically){RadioButton(reason==label,onClick={reason=label});Text(label)}
+     Row(Modifier.fillMaxWidth(),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically){RadioButton(reason==label,onClick={reason=label});Text(label,color=SmartRoutePalette.Text)}
     }
    }else{
-    Text("Califica del 1 al 5",style=MaterialTheme.typography.titleMedium)
+    Text("Califica del 1 al 5",style=MaterialTheme.typography.titleMedium,color=SmartRoutePalette.Text)
     Row { (1..5).forEach { n -> TextButton(onClick={stars=n}){Text(if(n<=stars)"★" else "☆",color=Color(0xFFE0A000),style=MaterialTheme.typography.headlineMedium)} } }
    }
    OutlinedTextField(value=comment,onValueChange={if(it.length<=1000)comment=it},label={Text("Comentario opcional")},minLines=3,modifier=Modifier.fillMaxWidth())
@@ -67,7 +69,7 @@ fun PassengerFeedbackScreen(kind:String,onBack:()->Unit){
      }catch(e:Exception){status="Error de conexión: ${e.message}"}finally{sending=false}}
     }.addOnFailureListener{sending=false;status="No se pudo obtener el GPS"}
    }){Text(if(sending)"Enviando..." else if(compliment)"Enviar felicitación" else "Enviar calificación")}
-   if(status.isNotBlank())Text(status,color=if(status.startsWith("Enviado"))Color(0xFF167447) else MaterialTheme.colorScheme.error)
+   if(status.isNotBlank())Text(status,color=if(status.startsWith("Enviado"))SmartRoutePalette.Mint else MaterialTheme.colorScheme.error)
   }
  }
 }

@@ -24,6 +24,7 @@ public class EmailVerificationService {
 
     private final EmailVerificationCodeRepository codeRepository;
     private final JavaMailSender mailSender;
+    private final BrevoMailGateway brevoMailGateway;
     private final PasswordEncoder passwordEncoder;
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -36,10 +37,12 @@ public class EmailVerificationService {
     public EmailVerificationService(
             EmailVerificationCodeRepository codeRepository,
             JavaMailSender mailSender,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            BrevoMailGateway brevoMailGateway) {
 
         this.codeRepository = codeRepository;
         this.mailSender = mailSender;
+        this.brevoMailGateway = brevoMailGateway;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -331,6 +334,13 @@ public class EmailVerificationService {
                     code,
                     expirationMinutes
             );
+
+            // Usar HTTPS cuando MAIL_PROVIDER=brevo (puerto 443).
+            // El SMTP actual se conserva como alternativa si vuelve a habilitarse.
+            if (brevoMailGateway.enabled()) {
+                brevoMailGateway.send(user.getEmail(), "Tu código de verificación | SmartRoute GT", html);
+                return;
+            }
 
             helper.setText(html, true);
 

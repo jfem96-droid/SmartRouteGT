@@ -9,6 +9,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.smartroutegt.mobile.data.remote.RouteGeometryPointDto
 import com.smartroutegt.mobile.data.remote.RouteStopDto
+import com.smartroutegt.mobile.data.remote.BusMonitoringDto
 import org.maplibre.android.MapLibre
 import org.maplibre.android.annotations.MarkerOptions
 import org.maplibre.android.annotations.PolylineOptions
@@ -26,6 +27,7 @@ fun PassengerMap(
     routeStops: List<RouteStopDto>,
     routePath: List<Long>?,
     geometryPoints: List<RouteGeometryPointDto> = emptyList(),
+    activeBuses: List<BusMonitoringDto> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     AndroidView(
@@ -88,6 +90,18 @@ fun PassengerMap(
                                 .snippet("Parada SmartRoute")
                         )
                     }
+
+                // Marcadores GPS reales: solo buses con viaje activo y coordenadas válidas.
+                activeBuses.filter { it.viajeActivo && it.tripId != null && it.latitud != null && it.longitud != null }.forEach { bus ->
+                    val lat = bus.latitud!!
+                    val lon = bus.longitud!!
+                    if (lat in -90.0..90.0 && lon in -180.0..180.0) {
+                        map.addMarker(MarkerOptions()
+                            .position(LatLng(lat, lon))
+                            .title("Bus activo · ${bus.codigo}")
+                            .snippet("${bus.placa} · ${bus.direction ?: "Recorrido en curso"}"))
+                    }
+                }
 
                 val roadPoints =
                     geometryPoints.map { point ->

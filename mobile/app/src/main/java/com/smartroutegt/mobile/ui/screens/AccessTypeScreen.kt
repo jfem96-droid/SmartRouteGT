@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.smartroutegt.mobile.ui.theme.SmartRoutePalette
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -30,10 +31,10 @@ fun AccessTypeScreen(
     onPassengerSelected: () -> Unit,
     onDriverSelected: () -> Unit
 ) {
-    val blue = Color(0xFF0B5ED7)
-    val navy = Color(0xFF082B57)
-    val background = Color(0xFFF4F7FB)
-    val muted = Color(0xFF667085)
+    val blue = SmartRoutePalette.Mint
+    val navy = SmartRoutePalette.Text
+    val background = SmartRoutePalette.Night
+    val muted = SmartRoutePalette.Muted
 
     Box(
         modifier = Modifier
@@ -67,7 +68,8 @@ fun AccessTypeScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color.White
+                    containerColor = SmartRoutePalette.Navy,
+                    contentColor = SmartRoutePalette.Text
                 ),
                 elevation = CardDefaults.cardElevation(
                     defaultElevation = 5.dp
@@ -99,7 +101,8 @@ fun AccessTypeScreen(
                             .height(66.dp),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = blue
+                            containerColor = blue,
+                            contentColor = SmartRoutePalette.Night
                         )
                     ) {
                         Column(
@@ -123,7 +126,10 @@ fun AccessTypeScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(66.dp),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = SmartRoutePalette.Mint
+                        )
                     ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally
@@ -132,7 +138,7 @@ fun AccessTypeScreen(
                                 text = "SOY PILOTO",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = navy
+                                color = SmartRoutePalette.Mint
                             )
 
                             Text(

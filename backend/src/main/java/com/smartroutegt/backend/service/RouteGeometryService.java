@@ -3,10 +3,15 @@ package com.smartroutegt.backend.service;
 import com.smartroutegt.backend.dto.routing.RouteGeometryPoint;
 import com.smartroutegt.backend.dto.routing.RouteGeometryResponse;
 import com.smartroutegt.backend.entity.RouteStop;
+import com.smartroutegt.backend.entity.Stop;
+import com.smartroutegt.backend.entity.Trip;
 import com.smartroutegt.backend.repository.RouteStopRepository;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -19,13 +24,13 @@ public class RouteGeometryService {
     private static final String VALHALLA_URL =
             "https://valhalla1.openstreetmap.de/route";
 
-    private final RouteStopRepository routeStopRepository;
+    private final RouteItineraryService itineraryService;
     private final RestClient restClient;
 
     public RouteGeometryService(
-            RouteStopRepository routeStopRepository) {
+            RouteItineraryService itineraryService) {
 
-        this.routeStopRepository = routeStopRepository;
+        this.itineraryService = itineraryService;
 
         this.restClient = RestClient.builder()
                 .defaultHeader(
@@ -44,75 +49,28 @@ public class RouteGeometryService {
             Long originStopId,
             Long destinationStopId) {
 
-        List<RouteStop> routeStops =
-                routeStopRepository
-                        .findByRouteIdOrderByOrdenAsc(routeId);
+        return getRouteGeometry(routeId, originStopId, destinationStopId, null);
+    }
 
-        if (originStopId != null || destinationStopId != null) {
-
-            if (originStopId == null || destinationStopId == null) {
-                throw new IllegalArgumentException(
-                        "Debes enviar originStopId y destinationStopId"
-                );
-            }
-
-            int originIndex = -1;
-            int destinationIndex = -1;
-
-            for (int i = 0; i < routeStops.size(); i++) {
-
-                Long stopId = routeStops.get(i).getStop().getId();
-
-                if (stopId.equals(originStopId)) {
-                    originIndex = i;
-                }
-
-                if (stopId.equals(destinationStopId)) {
-                    destinationIndex = i;
-                }
-            }
-
-            if (originIndex < 0 || destinationIndex < 0) {
-                throw new IllegalArgumentException(
-                        "El origen o destino no pertenece a la ruta"
-                );
-            }
-
-            if (originIndex >= destinationIndex) {
-                throw new IllegalArgumentException(
-                        "El destino debe estar después del origen en la ruta"
-                );
-            }
-
-            routeStops = new ArrayList<>(
-                    routeStops.subList(
-                            originIndex,
-                            destinationIndex + 1
-                    )
-            );
-        }
-
-        if (routeStops.size() < 2) {
-            throw new IllegalArgumentException(
-                    "La ruta necesita al menos dos paradas"
-            );
-        }
+    public RouteGeometryResponse getRouteGeometry(Long routeId, Long originStopId,
+                                                   Long destinationStopId, Trip.Sentido direction) {
+        List<Stop> routeStops = itineraryService.resolve(routeId, originStopId, destinationStopId, direction).stops();
 
         List<Map<String, Object>> locations = new ArrayList<>();
 
-        for (RouteStop routeStop : routeStops) {
+        for (Stop routeStop : routeStops) {
 
             Map<String, Object> location =
                     new LinkedHashMap<>();
 
             location.put(
                     "lat",
-                    routeStop.getStop().getLatitud()
+                    routeStop.getLatitud()
             );
 
             location.put(
                     "lon",
-                    routeStop.getStop().getLongitud()
+                    routeStop.getLongitud()
             );
 
             location.put("type", "break");
@@ -127,13 +85,15 @@ public class RouteGeometryService {
         request.put("costing", "auto");
         request.put("units", "kilometers");
 
-        Map<?, ?> response = restClient
-                .post()
-                .uri(VALHALLA_URL)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(request)
-                .retrieve()
-                .body(Map.class);
+        Map<?, ?> response;
+        try {
+            response = restClient.post().uri(VALHALLA_URL)
+                .contentType(MediaType.APPLICATION_JSON).body(request)
+                .retrieve().body(Map.class);
+        } catch (RestClientException error) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                "El proveedor de mapas no pudo calcular el trazado de este recorrido", error);
+        }
 
         if (response == null) {
             throw new IllegalStateException(

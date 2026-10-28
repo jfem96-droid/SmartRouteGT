@@ -1,5 +1,8 @@
 package com.smartroutegt.backend.entity;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -32,6 +35,22 @@ public class Trip {
     private LocalDateTime fechaFin;
 
     private boolean activo = true;
+
+    public enum Sentido { IDA, VUELTA }
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "sentido_actual", length = 10, nullable = false)
+    private Sentido sentidoActual = Sentido.IDA;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_recorrido", length = 20, nullable = false)
+    private DriverRouteAssignment.TipoRecorrido tipoRecorrido = DriverRouteAssignment.TipoRecorrido.SOLO_IDA;
+
+    public Sentido getSentidoActual() { return sentidoActual == null ? Sentido.IDA : sentidoActual; }
+    public void setSentidoActual(Sentido sentidoActual) { this.sentidoActual = sentidoActual; }
+    public DriverRouteAssignment.TipoRecorrido getTipoRecorrido() { return tipoRecorrido == null ? DriverRouteAssignment.TipoRecorrido.SOLO_IDA : tipoRecorrido; }
+    public void setTipoRecorrido(DriverRouteAssignment.TipoRecorrido tipoRecorrido) { this.tipoRecorrido = tipoRecorrido; }
+
 
     public Trip() {
     }

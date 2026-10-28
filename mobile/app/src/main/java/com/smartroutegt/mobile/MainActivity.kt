@@ -14,7 +14,7 @@ import com.smartroutegt.mobile.ui.screens.AccessTypeScreen
 import com.smartroutegt.mobile.ui.screens.RegisterScreen
 import com.smartroutegt.mobile.ui.screens.VerifyEmailScreen
 import com.smartroutegt.mobile.ui.screens.ForgotPasswordScreen
-import com.smartroutegt.mobile.ui.theme.SmartRouteGTTheme
+import com.smartroutegt.mobile.ui.theme.SmartRouteVisualTheme
 import com.smartroutegt.mobile.ui.screens.LoginScreen
 import com.smartroutegt.mobile.ui.screens.RoleSelectionScreen
 import com.smartroutegt.mobile.ui.screens.PassengerProfileScreen
@@ -45,10 +45,24 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            SmartRouteGTTheme {
+            SmartRouteVisualTheme {
 
+                // SessionManager ya conserva token y rol en SharedPreferences.
+                // Cuando Android recrea la actividad, reabrimos la zona autenticada.
+                // Para piloto, driverLoading consulta de nuevo la asignación y viaje
+                // activos; no se finaliza ningún viaje por minimizar la aplicación.
                 var currentScreen by remember {
-                    mutableStateOf("accessType")
+                    mutableStateOf(
+                        if (SessionManager.isLoggedIn()) {
+                            when (SessionManager.getRole()?.uppercase()) {
+                                "DRIVER" -> "driverLoading"
+                                "PASSENGER" -> "passenger"
+                                else -> "role"
+                            }
+                        } else {
+                            "accessType"
+                        }
+                    )
                 }
 
                 var passengerRoute by remember { mutableStateOf<com.smartroutegt.mobile.data.remote.RouteDto?>(null) }

@@ -1,5 +1,7 @@
 package com.smartroutegt.mobile.ui.screens
 
+import com.smartroutegt.mobile.ui.theme.SmartRoutePalette
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,19 +30,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-val SmartRouteBlue = Color(0xFF2563EB)
-val SmartRouteDarkBlue = Color(0xFF173C7A)
-val SmartRouteGreen = Color(0xFF16A34A)
+val SmartRouteBlue = SmartRoutePalette.Mint
+val SmartRouteDarkBlue = SmartRoutePalette.Navy
+val SmartRouteGreen = Color(0xFF63E4C4)
 val SmartRouteRed = Color(0xFFDC2626)
-val SmartRouteBackground = Color(0xFFF4F7FB)
-val SmartRouteText = Color(0xFF172033)
-val SmartRouteMuted = Color(0xFF7D899D)
+val SmartRouteBackground = SmartRoutePalette.Night
+val SmartRouteText = SmartRoutePalette.Text
+val SmartRouteMuted = SmartRoutePalette.Muted
 
-val SmartRouteBlueSoft = Color(0xFFE8F0FF)
-val SmartRouteGreenSoft = Color(0xFFE5F7ED)
-val SmartRouteRedSoft = Color(0xFFFFE9E9)
-val SmartRouteAmberSoft = Color(0xFFFFF4D8)
-val SmartRoutePurpleSoft = Color(0xFFF1ECFF)
+val SmartRouteBlueSoft = SmartRoutePalette.Panel
+val SmartRouteGreenSoft = SmartRoutePalette.Panel
+val SmartRouteRedSoft = SmartRoutePalette.Panel
+val SmartRouteAmberSoft = SmartRoutePalette.Panel
+val SmartRoutePurpleSoft = SmartRoutePalette.Panel
 
 enum class SmartRouteV3Role {
     PASSENGER,
@@ -72,7 +74,7 @@ fun SmartRouteV3TopBar(
     onBack: (() -> Unit)? = null
 ) {
     Surface(
-        color = Color.White,
+        color = SmartRoutePalette.Panel,
         shadowElevation = 2.dp
     ) {
         Row(
@@ -86,7 +88,7 @@ fun SmartRouteV3TopBar(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFF0F4FA))
+                        .background(SmartRoutePalette.Navy)
                         .clickable(onClick = onBack),
                     contentAlignment = Alignment.Center
                 ) {
@@ -109,7 +111,7 @@ fun SmartRouteV3TopBar(
             ) {
                 Text(
                     text = "SR",
-                    color = Color.White,
+                    color = SmartRoutePalette.Night,
                     fontWeight = FontWeight.ExtraBold
                 )
             }
@@ -136,9 +138,9 @@ fun SmartRouteV3TopBar(
             Surface(
                 shape = RoundedCornerShape(50),
                 color = if (role == SmartRouteV3Role.DRIVER) {
-                    Color(0xFFE8F7ED)
+                    SmartRoutePalette.Panel
                 } else {
-                    Color(0xFFEAF2FF)
+                    SmartRoutePalette.Panel
                 }
             ) {
                 Text(
@@ -170,11 +172,10 @@ fun SmartRouteV3Card(
     content: @Composable () -> Unit
 ) {
     Card(
-        modifier = modifier.fillMaxWidth()
-                .statusBarsPadding(),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = SmartRoutePalette.Panel
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 2.dp
@@ -201,9 +202,9 @@ fun SmartRouteV3StatusCard(
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (positive) {
-                Color(0xFFEAF8EF)
+                SmartRoutePalette.Panel
             } else {
-                Color(0xFFFFF1F1)
+                SmartRoutePalette.Panel
             }
         )
     ) {
@@ -249,9 +250,9 @@ fun SmartRouteV3EmptyState(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
         color = if (error) {
-            Color(0xFFFFF1F1)
+            SmartRoutePalette.Panel
         } else {
-            Color(0xFFF0F4FA)
+            SmartRoutePalette.Navy
         }
     ) {
         Column(
@@ -297,7 +298,7 @@ fun SmartRouteV3NavItem(
                     when {
                         emphasized -> SmartRouteRed
                         selected -> SmartRouteBlue
-                        else -> Color(0xFFB8C0CD)
+                        else -> SmartRoutePalette.Muted
                     }
                 ),
             contentAlignment = Alignment.Center
@@ -343,7 +344,7 @@ fun SmartRouteV3PassengerBottomBar(
     onProfile: () -> Unit
 ) {
     Surface(
-        color = Color.White,
+        color = SmartRoutePalette.Panel,
         shadowElevation = 8.dp
     ) {
         Row(
@@ -398,7 +399,7 @@ fun SmartRouteV3DriverBottomBar(
     onReport: () -> Unit = {}
 ) {
     Surface(
-        color = Color.White,
+        color = SmartRoutePalette.Panel,
         shadowElevation = 8.dp
     ) {
         Row(

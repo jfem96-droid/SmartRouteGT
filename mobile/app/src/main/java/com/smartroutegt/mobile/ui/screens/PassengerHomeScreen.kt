@@ -1,5 +1,8 @@
 package com.smartroutegt.mobile.ui.screens
 
+import com.smartroutegt.mobile.ui.theme.SmartRoutePalette
+import com.smartroutegt.mobile.network.userFacingApiError
+
 import androidx.compose.foundation.layout.width
 import kotlin.coroutines.resume
 import androidx.compose.foundation.background
@@ -123,7 +126,7 @@ fun PassengerHomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF4F7FB))
+            .background(SmartRoutePalette.Night)
     ) {
         if (showLeaveConfirmation) {
             androidx.compose.material3.AlertDialog(
@@ -145,7 +148,7 @@ fun PassengerHomeScreen(
                                         status = "No se pudo registrar el descenso: ${result.code()}"
                                     }
                                 } catch (e: Exception) {
-                                    status = "Error al registrar descenso: ${e.message}"
+                                    status = userFacingApiError(e)
                                 } finally {
                                     busy = false
                                 }
@@ -179,17 +182,17 @@ fun PassengerHomeScreen(
 
             if (selectedRoute != null) {
                 Card(modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp).fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF193E7B))) {
+                    colors = CardDefaults.cardColors(containerColor = SmartRoutePalette.Panel)) {
                     Column(Modifier.padding(16.dp)) {
                         Text("${selectedRoute.codigo} · ${selectedRoute.nombre}", color = Color.White, fontWeight = FontWeight.Bold)
                         Text(selectedBus?.let { "${it.codigo} · ${it.placa}" } ?: "Buses de la ruta en el mapa", color = Color.White)
                         if (boarding?.active == true && boarding?.tripId == selectedBus?.tripId) {
                             Text("Abordaje confirmado · ${boarding?.bus}", color = Color.White)
-                            Button(onClick = onRateDriver, modifier = Modifier.fillMaxWidth(), colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color.White)) {
-                                Text("★  Evaluar al piloto", color = Color(0xFF193E7B))
+                            Button(onClick = onRateDriver, modifier = Modifier.fillMaxWidth(), colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = SmartRoutePalette.Panel)) {
+                                Text("★  Evaluar al piloto", color = SmartRoutePalette.Mint)
                             }
-                            Button(onClick = onComplimentDriver, modifier = Modifier.fillMaxWidth(), colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color(0xFFE4F5E9))) {
-                                Text("♥  Felicitar al piloto", color = Color(0xFF167447))
+                            Button(onClick = onComplimentDriver, modifier = Modifier.fillMaxWidth(), colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = SmartRoutePalette.Panel)) {
+                                Text("♥  Felicitar al piloto", color = SmartRoutePalette.Mint)
                             }
                             androidx.compose.material3.OutlinedButton(onClick = onBoarded, modifier = Modifier.fillMaxWidth()) {
                                 Text("Reportar incidente", color = Color.White)
@@ -213,11 +216,11 @@ fun PassengerHomeScreen(
                                 color = Color.White,
                                 fontSize = 12.sp
                             )
-                            Button(onClick = onRateDriver, modifier = Modifier.fillMaxWidth(), colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color.White)) {
-                                Text("★  Evaluar al piloto", color = Color(0xFF193E7B))
+                            Button(onClick = onRateDriver, modifier = Modifier.fillMaxWidth(), colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = SmartRoutePalette.Panel)) {
+                                Text("★  Evaluar al piloto", color = SmartRoutePalette.Mint)
                             }
-                            Button(onClick = onComplimentDriver, modifier = Modifier.fillMaxWidth(), colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color(0xFFE4F5E9))) {
-                                Text("♥  Felicitar al piloto", color = Color(0xFF167447))
+                            Button(onClick = onComplimentDriver, modifier = Modifier.fillMaxWidth(), colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = SmartRoutePalette.Panel)) {
+                                Text("♥  Felicitar al piloto", color = SmartRoutePalette.Mint)
                             }
                             androidx.compose.material3.OutlinedButton(onClick = onBoarded, modifier = Modifier.fillMaxWidth()) {
                                 Text("Reportar incidente", color = Color.White)
@@ -241,9 +244,10 @@ fun PassengerHomeScreen(
                                                     else status = when (result.code()) {
                                                         403 -> "No puedes abordar todavía. Acércate a 30 metros o menos del bus y comprueba que su GPS esté actualizado."
                                                         401 -> "Tu sesión ha caducado. Inicia sesión nuevamente."
+                                                        in 500..599 -> "SmartRoute GT presenta un problema temporal en el servidor. Reintenta más tarde."
                                                         else -> "No se pudo confirmar el abordaje (HTTP ${result.code()}). Intenta nuevamente."
                                                     }
-                                                } catch (e: Exception) { status = "Error de conexión: ${e.message}" }
+                                                } catch (e: Exception) { status = userFacingApiError(e) }
                                                 finally { busy = false }
                                             }
                                         }.addOnFailureListener { busy = false; status = "No se obtuvo ubicación GPS" }
@@ -253,8 +257,8 @@ fun PassengerHomeScreen(
                             Text("Selecciona un bus con viaje activo en Planifica tu viaje", color = Color.White, fontSize = 11.sp)
                         }
                         if (status.isNotBlank()) {
-                            Surface(color = if (status.contains("confirmado", true)) Color(0xFFE4F5E9) else Color(0xFFFFF3DC), shape = RoundedCornerShape(12.dp)) {
-                                Text(status, modifier = Modifier.fillMaxWidth().padding(12.dp), color = if (status.contains("confirmado", true)) Color(0xFF167447) else Color(0xFF754B00), fontSize = 13.sp)
+                            Surface(color = if (status.contains("confirmado", true)) SmartRoutePalette.Panel else SmartRoutePalette.Panel, shape = RoundedCornerShape(12.dp)) {
+                                Text(status, modifier = Modifier.fillMaxWidth().padding(12.dp), color = if (status.contains("confirmado", true)) SmartRoutePalette.Mint else Color(0xFFFFD17A), fontSize = 13.sp)
                             }
                         }
                         androidx.compose.material3.OutlinedButton(
@@ -291,7 +295,7 @@ fun PassengerHomeScreen(
 @Composable
 private fun PassengerV3Header(onProfile: () -> Unit) {
     Surface(
-        color = Color.White,
+        color = SmartRoutePalette.Panel,
         shadowElevation = 3.dp
     ) {
         Row(
@@ -309,7 +313,7 @@ private fun PassengerV3Header(onProfile: () -> Unit) {
             ) {
                 Text(
                     text = "SR",
-                    color = Color.White,
+                    color = SmartRoutePalette.Night,
                     fontWeight = FontWeight.ExtraBold
                 )
             }
@@ -323,13 +327,13 @@ private fun PassengerV3Header(onProfile: () -> Unit) {
                     text = "SmartRoute GT",
                     fontWeight = FontWeight.Bold,
                     fontSize = 19.sp,
-                    color = Color(0xFF172033)
+                    color = SmartRoutePalette.Text
                 )
 
                 Text(
                     text = "Movilidad inteligente",
                     fontSize = 11.sp,
-                    color = Color(0xFF758097)
+                    color = SmartRoutePalette.Muted
                 )
             }
 
@@ -338,7 +342,7 @@ private fun PassengerV3Header(onProfile: () -> Unit) {
                     .size(40.dp)
                     .clickable { onProfile() }
                     .clip(CircleShape)
-                    .background(Color(0xFFE8F1FF)),
+                    .background(SmartRoutePalette.Panel),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -362,7 +366,7 @@ private fun PassengerSearchPanel(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = SmartRoutePalette.Panel
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 7.dp
@@ -372,26 +376,26 @@ private fun PassengerSearchPanel(
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = "¿A dónde quieres ir?",
+                text = "Selecciona tu ruta",
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,
-                color = Color(0xFF172033)
+                color = SmartRoutePalette.Text
             )
 
             Spacer(modifier = Modifier.height(13.dp))
 
             PassengerLocationField(
-                color = Color(0xFF2475F0),
-                title = "¿Desde dónde viajas?",
-                subtitle = "Selecciona tu parada de origen"
+                color = SmartRoutePalette.Mint,
+                title = "Origen",
+                subtitle = "¿Desde dónde comienza tu viaje?"
             )
 
             Spacer(modifier = Modifier.height(9.dp))
 
             PassengerLocationField(
                 color = Color(0xFFE63C4F),
-                title = "¿A dónde quieres ir?",
-                subtitle = "Selecciona tu destino"
+                title = "Destino",
+                subtitle = "¿A dónde termina tu viaje?"
             )
         }
     }
@@ -407,7 +411,7 @@ private fun PassengerLocationField(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(15.dp))
-            .background(Color(0xFFF4F6F9))
+            .background(SmartRoutePalette.Navy)
             .padding(horizontal = 13.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -425,13 +429,13 @@ private fun PassengerLocationField(
                 text = title,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF263247)
+                color = SmartRoutePalette.Text
             )
 
             Text(
                 text = subtitle,
                 fontSize = 11.sp,
-                color = Color(0xFF8992A5)
+                color = SmartRoutePalette.Muted
             )
         }
     }
@@ -444,7 +448,7 @@ private fun PassengerMapPlaceholder(
 ) {
     Box(
         modifier = modifier
-            .background(Color(0xFFE5EBF1))
+            .background(SmartRoutePalette.Panel)
             .clickable(onClick = onNearbyBuses)
     ) {
         Column(
@@ -453,14 +457,14 @@ private fun PassengerMapPlaceholder(
         ) {
             Text(
                 text = "MAPA EN TIEMPO REAL",
-                color = Color(0xFF77879A),
+                color = SmartRoutePalette.Muted,
                 fontWeight = FontWeight.Bold,
                 fontSize = 13.sp
             )
 
             Text(
                 text = "Buses y rutas SmartRoute GT",
-                color = Color(0xFF98A4B4),
+                color = SmartRoutePalette.Muted,
                 fontSize = 11.sp,
                 modifier = Modifier.padding(top = 4.dp)
             )
@@ -493,7 +497,7 @@ private fun PassengerBusMarker(
     ) {
         Text(
             text = "BUS",
-            color = Color.White,
+            color = SmartRoutePalette.Night,
             fontSize = 9.sp,
             fontWeight = FontWeight.ExtraBold
         )
@@ -511,7 +515,7 @@ private fun LiveBusCard(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = SmartRoutePalette.Panel
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 6.dp
@@ -525,7 +529,7 @@ private fun LiveBusCard(
                 modifier = Modifier
                     .size(43.dp)
                     .clip(RoundedCornerShape(13.dp))
-                    .background(Color(0xFFE9F2FF)),
+                    .background(SmartRoutePalette.Panel),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -544,13 +548,13 @@ private fun LiveBusCard(
                 Text(
                     text = "Buses en tiempo real",
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF172033)
+                    color = SmartRoutePalette.Text
                 )
 
                 Text(
                     text = "Consulta unidades cercanas y su recorrido",
                     fontSize = 11.sp,
-                    color = Color(0xFF7E899B)
+                    color = SmartRoutePalette.Muted
                 )
             }
 
@@ -571,7 +575,7 @@ private fun PassengerV3BottomBar(
     onProfile: () -> Unit
 ) {
     Surface(
-        color = Color.White,
+        color = SmartRoutePalette.Panel,
         shadowElevation = 10.dp
     ) {
         Row(
@@ -649,7 +653,7 @@ private fun PassengerBottomItem(
             color = if (selected) {
                 MaterialTheme.colorScheme.primary
             } else {
-                Color(0xFF8D97A8)
+                SmartRoutePalette.Muted
             }
         )
 
@@ -664,7 +668,7 @@ private fun PassengerBottomItem(
             color = if (selected) {
                 MaterialTheme.colorScheme.primary
             } else {
-                Color(0xFF8D97A8)
+                SmartRoutePalette.Muted
             }
         )
     }

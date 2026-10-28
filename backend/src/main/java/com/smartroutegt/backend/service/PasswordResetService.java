@@ -24,6 +24,7 @@ public class PasswordResetService {
 
     private final PasswordResetCodeRepository repository;
     private final JavaMailSender mailSender;
+    private final BrevoMailGateway brevoMailGateway;
     private final PasswordEncoder passwordEncoder;
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -36,10 +37,12 @@ public class PasswordResetService {
     public PasswordResetService(
             PasswordResetCodeRepository repository,
             JavaMailSender mailSender,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            BrevoMailGateway brevoMailGateway) {
 
         this.repository = repository;
         this.mailSender = mailSender;
+        this.brevoMailGateway = brevoMailGateway;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -183,6 +186,13 @@ public class PasswordResetService {
                     code,
                     expirationMinutes
             );
+
+            // Usar HTTPS cuando MAIL_PROVIDER=brevo (puerto 443).
+            // El SMTP actual se conserva como alternativa si vuelve a habilitarse.
+            if (brevoMailGateway.enabled()) {
+                brevoMailGateway.send(user.getEmail(), "Recupera tu contraseña | SmartRoute GT", html);
+                return;
+            }
 
             helper.setText(html, true);
 

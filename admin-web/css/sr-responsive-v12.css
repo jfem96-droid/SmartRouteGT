@@ -1,0 +1,108 @@
+/* SmartRoute GT 1.2 · Responsive incremental del administrador.
+   NO cambia JS, permisos, endpoints, Nginx, mapa ni colores del tema actual.
+   Refuerzo para ventanas restauradas y dispositivos compactos. */
+
+html, body { max-width: 100%; }
+#app, #app * { box-sizing: border-box; }
+#app { max-width: 100%; min-width: 0; }
+#app > .content {
+  width: calc(100% - 260px);
+  min-width: 0;
+  max-width: calc(100% - 260px);
+  margin-left: 260px;
+}
+#app > .content > main {
+  width: 100%;
+  min-width: 0;
+  max-width: 1700px;
+}
+#app > .content > main > section.view,
+#app .panel,
+#app .heading,
+#app .sr-analytics,
+#app .sr-analytics > *,
+#app .sr-toolbar,
+#app .sr-hero,
+#app .metrics,
+#app .mapgrid,
+#app .smart-route-selector,
+#app .smart-fleet-card {
+  min-width: 0;
+  max-width: 100%;
+}
+#app .heading,
+#app > .content > header,
+#app .sr-toolbar,
+#app .sr-hero,
+#app .sr-tools,
+#app .smart-route-selector,
+#app .smart-route-selector-list {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+#app > .content > header { height: auto; min-height: 76px; padding-block: 12px; }
+#app > .content > header > div,
+#app .heading > div,
+#app .sr-toolbar > div { min-width: 0; }
+#app .heading h1, #app .heading h2,
+#app .sr-toolbar h3 { overflow-wrap: anywhere; }
+#app .metrics { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+#app .metrics article { min-width: 0; }
+#app .mapgrid { grid-template-columns: minmax(0, 1.8fr) minmax(0, .7fr); }
+#app .sr-charts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#app .sr-search,
+#app .sr-search input,
+#app .sr-tools > * { min-width: 0; max-width: 100%; }
+
+/* Chrome moderno soporta :has. El scroll se limita a la tarjeta con tabla;
+   no se desplaza ni ensancha toda la página y se conserva el DOM actual. */
+#app .panel:has(table) {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+#app .panel .table-responsive { max-width: 100%; overflow-x: auto; }
+#app .panel table { width: 100%; min-width: 710px; border-collapse: collapse; }
+#app #usuarios .panel table { min-width: 980px; }
+#app .panel table th,
+#app .panel table td { vertical-align: middle; }
+#app .panel table td { overflow-wrap: anywhere; }
+#app .panel table td > button,
+#app .panel table td > .btn { white-space: nowrap; margin: 2px; }
+#app .sr-table-actions,
+#app .action-buttons,
+#app .actions-cell,
+#app td .actions { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* Evita que la navegación lateral reste casi todo el ancho al restaurar
+   la ventana. Se conserva el mismo botón mobileMenu y su JS existente. */
+@media (max-width: 1180px) {
+  #app > aside { transform: translateX(-100%); transition: transform .2s ease; }
+  #app > aside.open { transform: none; }
+  #app > .content { width: 100%; max-width: 100%; margin-left: 0; }
+  #app #mobileMenu { display: inline-flex; align-items: center; justify-content: center; }
+  #app .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  #app .mapgrid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 800px) {
+  #app .sr-charts { grid-template-columns: minmax(0, 1fr); }
+  #app .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #app .heading { align-items: flex-start; }
+  #app .sr-toolbar, #app .sr-hero { align-items: stretch; }
+  #app .sr-tools { width: 100%; }
+  #app .panel table { min-width: 690px; }
+}
+@media (max-width: 560px) {
+  #app > .content > main { padding: 16px 10px; }
+  #app > .content > header { padding: 10px 12px; }
+  #app .panel { padding: 12px; }
+  #app .metrics { grid-template-columns: minmax(0, 1fr); }
+  #app .heading { flex-direction: column; align-items: stretch; }
+  #app .sr-tools { flex-direction: column; }
+  #app .sr-tools > * { width: 100%; }
+  #app #usuarios .panel table { min-width: 870px; }
+  #app .sr-downloads-top { max-width: 100%; }
+}
+/* SmartRoute GT responsive v1.2 fin */

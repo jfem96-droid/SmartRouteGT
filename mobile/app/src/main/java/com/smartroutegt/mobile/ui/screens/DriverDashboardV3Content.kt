@@ -41,6 +41,9 @@ fun DriverDashboardV3Content(
     sancionesConfirmadas: Int,
     viajeActivo: Boolean,
     tripId: Long?,
+    dispatchNotice: String,
+    nextLegRequired: Boolean,
+    assignmentOutdated: Boolean,
     iniciandoViaje: Boolean,
     finalizandoViaje: Boolean,
     errorViaje: String?,
@@ -96,6 +99,11 @@ fun DriverDashboardV3Content(
 
             Spacer(modifier = Modifier.height(18.dp))
 
+            Text(text = dispatchNotice, fontWeight = FontWeight.Bold, color = SmartRouteGreen)
+            if (assignmentOutdated) {
+                Text("El centro de control cambió tu asignación. Regresa al acceso de piloto para actualizar la ficha antes de iniciar.", color = SmartRouteRed)
+            }
+            Spacer(modifier = Modifier.height(10.dp))
             DriverBoardingCodeV3Card(tripId = tripId)
             Spacer(modifier = Modifier.height(14.dp))
 
@@ -265,7 +273,7 @@ fun DriverDashboardV3Content(
             if (!viajeActivo) {
                 Button(
                     onClick = onStartTrip,
-                    enabled = !iniciandoViaje,
+                    enabled = !iniciandoViaje && !assignmentOutdated,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
@@ -297,7 +305,7 @@ fun DriverDashboardV3Content(
                         text = if (finalizandoViaje) {
                             "FINALIZANDO..."
                         } else {
-                            "FINALIZAR VIAJE"
+                            if (nextLegRequired) "FINALIZAR IDA E INICIAR VUELTA" else "FINALIZAR VIAJE"
                         },
                         fontWeight = FontWeight.Bold
                     )

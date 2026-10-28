@@ -1,5 +1,7 @@
 package com.smartroutegt.mobile.ui.screens
 
+import com.smartroutegt.mobile.ui.theme.SmartRoutePalette
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -15,8 +17,8 @@ import com.smartroutegt.mobile.data.remote.ApiClient
 import com.smartroutegt.mobile.data.remote.BusMonitoringDto
 import kotlinx.coroutines.delay
 
-private val fleetBlue = Color(0xFF193E7B)
-private val fleetBackground = Color(0xFFF4F7FB)
+private val fleetBlue = SmartRoutePalette.Panel
+private val fleetBackground = SmartRoutePalette.Night
 
 @Composable
 fun BusInfoScreen(onBack: () -> Unit) {
@@ -92,14 +94,14 @@ fun BusInfoScreen(onBack: () -> Unit) {
             }
 
             if (!loading && buses.isEmpty()) {
-                Text("No hay buses disponibles.")
+                Text("No hay buses disponibles.", color = SmartRoutePalette.Muted)
             }
 
             buses.forEach { bus ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = SmartRoutePalette.Panel),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(
@@ -112,21 +114,21 @@ fun BusInfoScreen(onBack: () -> Unit) {
                         ) {
                             Text(
                                 bus.codigo,
-                                color = fleetBlue,
+                                color = SmartRoutePalette.Mint,
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold
                             )
                             Surface(
                                 color = if (bus.activo)
-                                    Color(0xFFE0F5E9)
-                                else Color(0xFFFDE8E8),
+                                    Color(0xFF113F3B)
+                                else Color(0xFF4C2634),
                                 shape = RoundedCornerShape(50.dp)
                             ) {
                                 Text(
                                     if (bus.activo) "Activo" else "Inactivo",
                                     color = if (bus.activo)
-                                        Color(0xFF167447)
-                                    else Color(0xFFB42318),
+                                        SmartRoutePalette.Mint
+                                    else SmartRoutePalette.Error,
                                     modifier = Modifier.padding(
                                         horizontal = 12.dp,
                                         vertical = 6.dp
@@ -138,23 +140,24 @@ fun BusInfoScreen(onBack: () -> Unit) {
 
                         Text(
                             bus.ruta ?: "Sin ruta asignada",
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
+                            color = SmartRoutePalette.Text
                         )
                         Text(
                             "Placa: ${bus.placa}",
-                            color = Color.DarkGray
+                            color = SmartRoutePalette.Muted
                         )
                         Text(
                             "Piloto: ${bus.piloto ?: "Sin piloto asignado"}",
-                            color = Color.DarkGray
+                            color = SmartRoutePalette.Muted
                         )
 
-                        HorizontalDivider(color = Color(0xFFE8EDF5))
+                        HorizontalDivider(color = SmartRoutePalette.Border)
 
                         Text(
                             "Velocidad reportada",
                             style = MaterialTheme.typography.labelMedium,
-                            color = Color.Gray
+                            color = SmartRoutePalette.Muted
                         )
                         Text(
                             bus.velocidad?.let {
@@ -162,7 +165,7 @@ fun BusInfoScreen(onBack: () -> Unit) {
                             } ?: "Sin información",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = fleetBlue
+                            color = SmartRoutePalette.Mint
                         )
                     }
                 }

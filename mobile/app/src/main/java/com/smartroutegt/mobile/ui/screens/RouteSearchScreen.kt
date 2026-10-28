@@ -21,10 +21,13 @@ import com.smartroutegt.mobile.data.remote.RouteDto
 import com.smartroutegt.mobile.data.remote.StopDto
 import com.smartroutegt.mobile.data.remote.BusMonitoringDto
 import com.smartroutegt.mobile.data.remote.RouteGeometryPointDto
+import com.smartroutegt.mobile.data.remote.JourneyOptionDto
 import com.smartroutegt.mobile.network.DriverApiService
 import com.smartroutegt.mobile.network.NextStopDto
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import com.smartroutegt.mobile.network.userFacingApiError
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 
@@ -77,8 +80,23 @@ fun RouteSearchScreen(
         mutableStateOf<String?>(null)
     }
 
+    var selectedDirection by remember { mutableStateOf<String?>(null) }
+    var orderedNames by remember { mutableStateOf<List<String>>(emptyList()) }
+    var availableItineraries by remember { mutableStateOf<List<JourneyOptionDto>>(emptyList()) }
+
     var routePath by remember {
         mutableStateOf<List<Long>?>(null)
+    }
+
+    var mapBuses by remember { mutableStateOf<List<BusMonitoringDto>>(emptyList()) }
+    LaunchedEffect(selectedRoute?.id) {
+        val id = selectedRoute?.id ?: return@LaunchedEffect
+        while (true) {
+            try { mapBuses = ApiClient.busMonitoringApiService.getBuses().filter {
+                it.routeId == id && it.viajeActivo && it.tripId != null && it.latitud != null && it.longitud != null
+            } } catch (_: Exception) { /* Conservar última información hasta recuperar la conexión */ }
+            delay(10000)
+        }
     }
 
     var routeBuses by remember {
@@ -124,7 +142,7 @@ fun RouteSearchScreen(
             routes = ApiClient.routeApiService.getRoutes()
             routeLoadError = null
         } catch (e: Exception) {
-            routeLoadError = "No se pudieron cargar las rutas"
+            routeLoadError = userFacingApiError(e)
         } finally {
             isLoadingRoutes = false
         }
@@ -136,17 +154,26 @@ fun RouteSearchScreen(
         stopLoadError = null
 
         try {
-            routeStops = ApiClient.routeStopApiService.getStopsByRoute(route.id)
+            val idaStops = ApiClient.routeStopApiService.getStopsByRoute(route.id)
+            availableItineraries = ApiClient.routeApiService.getItineraries(route.id)
+            val extraStops = availableItineraries.flatMap { it.stops }
+                .filter { stop -> idaStops.none { it.stop.id == stop.id } }
+                .distinctBy { it.id }
+                .mapIndexed { i, stop ->
+                    com.smartroutegt.mobile.data.remote.RouteStopDto(-i.toLong()-1, route, stop, i+1)
+                }
+            routeStops = idaStops + extraStops
 
-            geometryPoints =
-                ApiClient.routeApiService
-                    .getRouteGeometry(route.id)
-                    .points
+            try {
+                geometryPoints = ApiClient.routeApiService.getRouteGeometry(route.id).points
+            } catch (_: Exception) {
+                geometryPoints = emptyList() // La selección de paradas sigue disponible.
+            }
 
         } catch (e: Exception) {
             routeStops = emptyList()
             geometryPoints = emptyList()
-            stopLoadError = "No se pudieron cargar las paradas o geometría de la ruta"
+            stopLoadError = userFacingApiError(e)
         } finally {
             isLoadingStops = false
         }
@@ -182,13 +209,16 @@ fun RouteSearchScreen(
             nextStop = null
 
             try {
-                routePath = ApiClient.algorithmApiService.getRoutePath(
-                    routeId = route.id,
-                    origen = origin.id,
-                    destino = destination.id
-                )
+                val options = ApiClient.routeApiService.getJourneyOptions(route.id, origin.id, destination.id)
+                val monitoring = try { ApiClient.busMonitoringApiService.getBuses() } catch (_: Exception) { emptyList() }
+                val option = options.firstOrNull { candidate -> monitoring.any { bus ->
+                    bus.routeId == route.id && bus.viajeActivo && bus.tripId != null && bus.direction == candidate.direction
+                } } ?: options.firstOrNull()
+                selectedDirection = option?.direction
+                routePath = option?.stopIds ?: emptyList()
+                orderedNames = option?.stops?.map { it.nombre } ?: emptyList()
             } catch (e: Exception) {
-                routeSearchError = "Error calculando la ruta: ${e.message}"
+                routeSearchError = userFacingApiError(e)
                 isSearchingRoute = false
                 isLoadingBuses = false
                 return@launch
@@ -206,11 +236,12 @@ fun RouteSearchScreen(
                     .getRouteGeometry(
                         routeId = route.id,
                         originStopId = origin.id,
-                        destinationStopId = destination.id
+                        destinationStopId = destination.id,
+                        direction = selectedDirection
                     )
                     .points
             } catch (e: Exception) {
-                routeSearchError = "Error cargando la geometría de la ruta: ${e.message}"
+                routeSearchError = userFacingApiError(e)
                 geometryPoints = emptyList()
                 isSearchingRoute = false
                 isLoadingBuses = false
@@ -223,7 +254,7 @@ fun RouteSearchScreen(
                 routeBuses = buses.filter { bus ->
                     bus.routeId == route.id &&
                         bus.viajeActivo &&
-                        bus.tripId != null
+                        bus.tripId != null && bus.direction == selectedDirection
                 }
 
                 if (routeBuses.isEmpty()) {
@@ -231,7 +262,7 @@ fun RouteSearchScreen(
                 }
             } catch (e: Exception) {
                 routeBuses = emptyList()
-                busLoadError = "Error cargando los buses: ${e.message}"
+                busLoadError = userFacingApiError(e)
             } finally {
                 isSearchingRoute = false
                 isLoadingBuses = false
@@ -262,7 +293,7 @@ fun RouteSearchScreen(
                 }
             } catch (e: Exception) {
                 nextStop = null
-                etaError = "No se pudo consultar el ETA: ${e.message}"
+                etaError = userFacingApiError(e)
             } finally {
                 isLoadingEta = false
             }
@@ -276,8 +307,11 @@ fun RouteSearchScreen(
         selectedOrigin = selectedOrigin,
         selectedDestination = selectedDestination,
         routePath = routePath,
+        selectedDirection = selectedDirection,
+        orderedNames = orderedNames,
         geometryPoints = geometryPoints,
         routeBuses = routeBuses,
+        mapBuses = mapBuses,
         selectedBus = selectedBus,
         nextStop = nextStop,
         isLoadingRoutes = isLoadingRoutes,
@@ -297,6 +331,8 @@ fun RouteSearchScreen(
             selectedOrigin = null
             selectedDestination = null
             routePath = null
+            selectedDirection = null
+            orderedNames = emptyList()
             routeBuses = emptyList()
             selectedBus = null
             nextStop = null

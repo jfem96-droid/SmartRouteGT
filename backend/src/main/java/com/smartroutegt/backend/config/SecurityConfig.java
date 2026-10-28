@@ -132,6 +132,20 @@ public class SecurityConfig {
                                                 .hasAnyRole("ADMIN", "DRIVER")
 
                                                 // Viajes activos: lectura necesaria para reportes de pasajeros.
+                                                .requestMatchers(HttpMethod.GET, "/api/routes/*/itineraries", "/api/routes/*/journey-options")
+                                                .hasAnyRole("ADMIN", "DRIVER", "PASSENGER")
+
+                                                .requestMatchers(HttpMethod.PUT, "/api/routes/*/return-stops")
+                                                .hasRole("ADMIN")
+
+                                                .requestMatchers(HttpMethod.GET, "/api/dispatch/driver/*", "/api/dispatch/trip/*")
+                                                .hasAnyRole("ADMIN", "DRIVER")
+
+                                                .requestMatchers(HttpMethod.PUT, "/api/trips/*/admin-finish").hasRole("ADMIN")
+
+                                                .requestMatchers(HttpMethod.PUT, "/api/trips/*/next-leg")
+                                                .hasRole("DRIVER")
+
                                                 .requestMatchers(HttpMethod.GET, "/api/trips/active")
                                                 .hasAnyRole("ADMIN", "PASSENGER")
 

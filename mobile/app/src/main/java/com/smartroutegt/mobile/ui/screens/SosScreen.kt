@@ -1,5 +1,7 @@
 package com.smartroutegt.mobile.ui.screens
 
+import com.smartroutegt.mobile.ui.theme.SmartRoutePalette
+
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.compose.foundation.background
@@ -78,7 +80,7 @@ fun SosScreen(onBack: () -> Unit) {
         }
     }
 
-    Column(Modifier.fillMaxSize().background(Color(0xFFF4F7FB))) {
+    Column(Modifier.fillMaxSize().background(SmartRoutePalette.Night)) {
         PassengerV3TopBar("Emergencia SOS", "Asistencia y seguridad", onBack)
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -129,7 +131,7 @@ fun SosScreen(onBack: () -> Unit) {
             }
             if (result.isNotBlank()) {
                 Surface(
-                    color = if (isError) Color(0xFFFFE7E7) else Color(0xFFE3F5E9),
+                    color = if (isError) SmartRoutePalette.Panel else SmartRoutePalette.Panel,
                     shape = RoundedCornerShape(14.dp)
                 ) {
                     Text(result, Modifier.fillMaxWidth().padding(16.dp), color = Color(0xFF18243B))

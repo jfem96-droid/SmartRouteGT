@@ -1,5 +1,6 @@
 package com.smartroutegt.mobile.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,6 +31,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.smartroutegt.mobile.auth.AuthRepository
+import com.smartroutegt.mobile.ui.theme.SmartRoutePalette
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 
@@ -56,6 +58,7 @@ fun RegisterScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(SmartRoutePalette.Night)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp, vertical = 28.dp),
         verticalArrangement = Arrangement.Center
@@ -92,7 +95,8 @@ fun RegisterScreen(
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Nombre completo") },
             singleLine = true,
-            enabled = !loading
+            enabled = !loading,
+            colors = smartAuthTextFieldColors()
         )
 
         Spacer(modifier = Modifier.height(14.dp))
@@ -109,7 +113,8 @@ fun RegisterScreen(
                 keyboardType = KeyboardType.Email
             ),
             singleLine = true,
-            enabled = !loading
+            enabled = !loading,
+            colors = smartAuthTextFieldColors()
         )
 
         Spacer(modifier = Modifier.height(14.dp))
@@ -126,7 +131,8 @@ fun RegisterScreen(
                 keyboardType = KeyboardType.Phone
             ),
             singleLine = true,
-            enabled = !loading
+            enabled = !loading,
+            colors = smartAuthTextFieldColors()
         )
 
         Spacer(modifier = Modifier.height(14.dp))
@@ -155,7 +161,8 @@ fun RegisterScreen(
                 ) {
                     Text(if (showPassword) "Ocultar" else "Ver")
                 }
-            }
+            },
+            colors = smartAuthTextFieldColors()
         )
 
         Spacer(modifier = Modifier.height(14.dp))
@@ -187,7 +194,8 @@ fun RegisterScreen(
                         else "Ver"
                     )
                 }
-            }
+            },
+            colors = smartAuthTextFieldColors()
         )
 
         Spacer(modifier = Modifier.height(12.dp))

@@ -9,6 +9,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
@@ -38,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.smartroutegt.mobile.auth.AuthRepository
 import com.smartroutegt.mobile.auth.LoginResponse
+import com.smartroutegt.mobile.ui.theme.SmartRoutePalette
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.IOException
@@ -58,20 +62,24 @@ fun LoginScreen(
     val scope = rememberCoroutineScope()
     val authRepository = remember { AuthRepository() }
 
-    val smartBlue = Color(0xFF2563EB)
-    val background = Color(0xFFF4F7FB)
-    val darkText = Color(0xFF172033)
-    val mutedText = Color(0xFF667085)
+    val smartBlue = SmartRoutePalette.Mint
+    val background = SmartRoutePalette.Night
+    val darkText = SmartRoutePalette.Text
+    val mutedText = SmartRoutePalette.Muted
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(background)
+            .imePadding()
             .padding(horizontal = 24.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(vertical = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -94,7 +102,8 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color.White
+                    containerColor = SmartRoutePalette.Navy,
+                    contentColor = SmartRoutePalette.Text
                 ),
                 elevation = CardDefaults.cardElevation(
                     defaultElevation = 6.dp
@@ -153,7 +162,8 @@ fun LoginScreen(
                             keyboardType = KeyboardType.Email,
                             imeAction = ImeAction.Next
                         ),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = smartAuthTextFieldColors()
                     )
 
                     Spacer(modifier = Modifier.height(14.dp))
@@ -174,7 +184,8 @@ fun LoginScreen(
                             keyboardType = KeyboardType.Password,
                             imeAction = ImeAction.Done
                         ),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = smartAuthTextFieldColors()
                     )
 
                     if (error != null) {
@@ -250,13 +261,14 @@ fun LoginScreen(
                             .height(54.dp),
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = smartBlue
+                            containerColor = smartBlue,
+                            contentColor = SmartRoutePalette.Night
                         )
                     ) {
                         if (loading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.height(24.dp),
-                                color = Color.White,
+                                color = SmartRoutePalette.Night,
                                 strokeWidth = 2.dp
                             )
                         } else {

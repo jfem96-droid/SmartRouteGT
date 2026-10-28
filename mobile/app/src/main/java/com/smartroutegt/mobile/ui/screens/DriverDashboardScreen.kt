@@ -1,5 +1,7 @@
 package com.smartroutegt.mobile.ui.screens
 
+import com.smartroutegt.mobile.network.userFacingApiError
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -64,6 +66,9 @@ fun DriverDashboardScreen(
     val rutaAsignada = assignment.route.nombre
     val pilotoNombre = assignment.driver.nombre
     val pilotoLicencia = assignment.driver.licencia
+
+    var dispatchStatus by remember { mutableStateOf<com.smartroutegt.mobile.network.DispatchStatusDto?>(null) }
+    var tripStage by remember { mutableStateOf<com.smartroutegt.mobile.network.DispatchTripStateDto?>(null) }
 
     var viajeActual by remember(initialTrip) {
         mutableStateOf(initialTrip)
@@ -150,11 +155,21 @@ fun DriverDashboardScreen(
         DriverApiService(ApiClient.create())
     }
 
-    LaunchedEffect(assignment.route.id) {
+    LaunchedEffect(assignment.driver.id, viajeActual?.id) {
+        while (true) {
+            try {
+                dispatchStatus = driverApiService.getDispatchStatus(assignment.driver.id)
+                tripStage = viajeActual?.id?.let { driverApiService.getDispatchTripState(it) }
+            } catch (_: Exception) { /* Se volverá a consultar; backend impide cambios no autorizados. */ }
+            delay(30_000)
+        }
+    }
+
+    LaunchedEffect(assignment.route.id, tripStage?.direction) {
         errorParadas = null
 
         try {
-            paradas = driverApiService.getRouteStops(assignment.route.id)
+            paradas = driverApiService.getRouteStops(assignment.route.id, tripStage?.direction)
                 .sortedBy { routeStop -> routeStop.orden }
         } catch (exception: HttpException) {
             errorParadas = "No se pudieron cargar las paradas"
@@ -164,7 +179,7 @@ fun DriverDashboardScreen(
         cargandoParadas = false
     }
 
-    LaunchedEffect(assignment.route.id) {
+    LaunchedEffect(assignment.route.id, tripStage?.direction) {
         loadingGeometry = true
         geometryError = null
 
@@ -172,7 +187,7 @@ fun DriverDashboardScreen(
             val geometry =
                 com.smartroutegt.mobile.data.remote.ApiClient
                     .routeApiService
-                    .getRouteGeometry(assignment.route.id)
+                    .getRouteGeometry(assignment.route.id, direction = tripStage?.direction)
 
             geometryPoints = geometry.points
         } catch (exception: Exception) {
@@ -358,14 +373,14 @@ fun DriverDashboardScreen(
                                 "HTTP ERROR ${exception.code()}: ${exception.message()}",
                                 exception
                             )
-                            estadoGps = "Error al registrar ubicación"
+                            estadoGps = userFacingApiError(exception)
                         } catch (exception: IOException) {
                             android.util.Log.e(
                                 "SmartRouteGPS",
                                 "IO ERROR: ${exception.message}",
                                 exception
                             )
-                            estadoGps = "Sin conexión con el servidor"
+                            estadoGps = userFacingApiError(exception)
                         } catch (exception: Exception) {
                             android.util.Log.e(
                                 "SmartRouteGPS",
@@ -594,6 +609,14 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
         sancionesConfirmadas = sancionesConfirmadas,
         viajeActivo = viajeActual != null,
         tripId = viajeActual?.id,
+        dispatchNotice = when (dispatchStatus?.tipoRecorrido) {
+            "SOLO_IDA" -> "Centro de control: SOLO IDA"
+            "SOLO_VUELTA" -> "Centro de control: SOLO VUELTA"
+            "IDA_Y_VUELTA" -> "Centro de control: IDA Y VUELTA"
+            else -> "Consultando asignación del centro de control..."
+        },
+        nextLegRequired = tripStage?.tipoRecorrido == "IDA_Y_VUELTA" && tripStage?.direction == "IDA",
+        assignmentOutdated = dispatchStatus?.assignmentId != null && dispatchStatus?.assignmentId != assignment.id,
         iniciandoViaje = iniciandoViaje,
         finalizandoViaje = finalizandoViaje,
         errorViaje = errorViaje,
@@ -609,6 +632,7 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
                     )
 
                     viajeActual = nuevoViaje
+                    tripStage = driverApiService.getDispatchTripState(nuevoViaje.id)
                     estadoViaje = "En curso"
 
                     val permisoPreciso =
@@ -655,11 +679,19 @@ val permisoUbicacionLauncher = rememberLauncherForActivityResult(
                     errorViaje = null
 
                     try {
-                        driverApiService.finishTrip(tripId)
-
-                        viajeActual = null
-                        estadoViaje = "Finalizado"
-                        gpsActivo = false
+                        if (tripStage?.tipoRecorrido == "IDA_Y_VUELTA" && tripStage?.direction == "IDA") {
+                            val vuelta = driverApiService.nextLeg(tripId)
+                            viajeActual = vuelta
+                            tripStage = driverApiService.getDispatchTripState(vuelta.id)
+                            estadoViaje = "Vuelta autorizada en curso"
+                            proximaParada = null
+                        } else {
+                            driverApiService.finishTrip(tripId)
+                            viajeActual = null
+                            tripStage = null
+                            estadoViaje = "Finalizado"
+                            gpsActivo = false
+                        }
 
                         speedWarning = false
                         speedViolationCreated = false
